@@ -318,3 +318,16 @@ describe('ignored and guarded input', () => {
     }
   });
 });
+
+describe('a FELT the device has no trial for', () => {
+  it('ends as a device error, with nothing recorded', () => {
+    const step = testReducer(reach('responding'), device({ type: 'ERR', code: 'NO_TEST' }));
+    expect(step.phase).toEqual({ name: 'device-error', code: 'NO_TEST' });
+    expect(step.effects).toEqual([]);
+  });
+
+  it('is ignored while the trial is simply running', () => {
+    const running = reach('running');
+    expect(testReducer(running, device({ type: 'ERR', code: 'NO_TEST' })).phase).toBe(running);
+  });
+});

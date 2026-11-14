@@ -8,9 +8,9 @@ const HEADLINE: Record<AssistState, string> = {
   on: 'Touch feedback enabled',
   paused: 'Touch Assist is paused',
   testing: 'Paused for the sensation test',
-  offline: 'Demo device disconnected',
-  checking: 'Checking the demo device',
-  changing: 'Waiting for the demo device',
+  offline: '{Device} {offline}',
+  checking: 'Checking the {device}',
+  changing: 'Waiting for the {device}',
 };
 
 const DETAIL: Record<AssistState, string> = {
@@ -19,8 +19,8 @@ const DETAIL: Record<AssistState, string> = {
   testing: 'Touch Assist and the sensation test can’t run at the same time. Turn Touch Assist back on when you have finished testing.',
   offline:
     'With the current firmware the wearable stops giving feedback when the connection drops. Reconnect, then turn Touch Assist back on.',
-  checking: 'Asking the demo device which mode it is in.',
-  changing: 'The mode changes once the demo device confirms it.',
+  checking: 'Asking the {device} which mode it is in.',
+  changing: 'The mode changes once the {device} confirms it.',
 };
 
 const STATE_WORD: Record<AssistState, { word: string; tone: Tone }> = {
@@ -45,6 +45,12 @@ export function AssistScreen() {
   const on = state === 'on';
   const busy = state === 'changing' || state === 'checking';
   const fingerName = patient.finger === 'thumb' ? 'thumb' : `${patient.finger} finger`;
+  /** Names the device the app is actually set to use, so the demonstration is never described as hardware. */
+  const worded = (text: string) =>
+    text
+      .replace('{Device}', device.words.Name)
+      .replace('{device}', device.words.name)
+      .replace('{offline}', device.simulated ? 'disconnected' : 'not connected');
 
   return (
     <Screen header={<TopBar title="Touch Assist" back="/patient" />}>
@@ -81,8 +87,8 @@ export function AssistScreen() {
       </figure>
 
       <div className="mt-5" aria-live="polite">
-        <h2 className="display text-[24px] leading-8 text-ink">{HEADLINE[state]}</h2>
-        <p className="mt-1.5 text-[15.5px] leading-6 text-ink-soft">{DETAIL[state]}</p>
+        <h2 className="display text-[24px] leading-8 text-ink">{worded(HEADLINE[state])}</h2>
+        <p className="mt-1.5 text-[15.5px] leading-6 text-ink-soft">{worded(DETAIL[state])}</p>
       </div>
 
       <div className="mt-4 space-y-2.5">
@@ -91,10 +97,10 @@ export function AssistScreen() {
             <Button variant="primary" size="lg" block onClick={device.connect} disabled={device.connection === 'connecting'}>
               {device.connection === 'connecting' ? (
                 <>
-                  <Spinner /> Reconnecting
+                  <Spinner /> {device.words.connecting}
                 </>
               ) : (
-                'Reconnect demo device'
+                device.words.connect
               )}
             </Button>
             <Button variant="outline" size="lg" block disabled>

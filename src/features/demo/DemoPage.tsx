@@ -4,12 +4,14 @@ import { useDevice } from '../../app/DeviceContext';
 import { useDemoState, useToday } from '../../app/hooks';
 import { useToast } from '../../components/Toast';
 import { Button, Panel, Segmented, cx } from '../../components/ui';
+import type { DeviceSource } from '../../devices/source';
 import { HISTORY_PRESET_LABEL, type HistoryPreset } from '../../demo/seed';
 import { demoStore, seedAgeDays } from '../../demo/store';
 import { formatTime } from '../../domain/dates';
-import { REHAB_LEVELS } from '../../domain/firmware';
+import { BLE_PROFILE, REHAB_LEVELS } from '../../domain/firmware';
 import { LEVEL_LABEL, triageSummaries } from '../../domain/triage';
 import type { RehabLevel } from '../../domain/types';
+import { PROBLEM_COPY, linkHeadline } from '../patient/deviceCopy';
 
 const SCENES = [
   { title: 'Touch Assist', to: '/patient/assist', text: 'Pressure at a numb fingertip becomes feedback at the wrist. Pause and enable the mode.' },
@@ -38,6 +40,11 @@ function Check({ checked, onChange, children }: { checked: boolean; onChange(val
   );
 }
 
+const SOURCE_OPTIONS: { value: DeviceSource; label: string }[] = [
+  { value: 'hardware', label: 'Physical device' },
+  { value: 'simulation', label: 'Demonstration' },
+];
+
 const selectClass = 'h-10 rounded-[10px] border border-rule bg-paper px-3 text-[14px] font-semibold text-ink hover:border-ink/30';
 
 /** Clearly separate from the product: launchers, a guided demo and every simulation control. */
@@ -54,6 +61,9 @@ export function DemoPage() {
   const scripted = scenario.result.kind === 'scripted' ? scenario.result.level : null;
   const age = seedAgeDays(state);
   const done = (message: string) => toast.show(message);
+  const hardware = !device.simulated;
+  const blocked = hardware && !device.bluetooth.supported ? device.bluetooth.reason : null;
+  const linkProblem = hardware ? (device.problem ?? blocked) : null;
 
   return (
     <div className="min-h-dvh bg-floor text-ink">
@@ -67,11 +77,12 @@ export function DemoPage() {
       <main className="mx-auto max-w-[1240px] px-6 pb-16 lg:px-10">
         <div className="pb-8 pt-10">
           <h1 className="serif max-w-[22ch] text-[40px] leading-[1.1] text-ink">
-            A simulated prototype of the <span className="underline decoration-wine-600 decoration-[3px] underline-offset-[10px] [text-decoration-skip-ink:none]">patient app</span> and clinician portal.
+            A working prototype of the <span className="underline decoration-wine-600 decoration-[3px] underline-offset-[10px] [text-decoration-skip-ink:none]">patient app</span> and clinician portal.
           </h1>
           <p className="mt-5 max-w-[70ch] text-[16px] leading-7 text-ink-soft">
             Ntact uses wearable feedback to help people with fingertip sensory loss perceive touch and track changes in
-            sensation while they recover. Nothing here uses Bluetooth, a server or real patient data.
+            sensation while they recover. It runs as a demonstration unless you choose the physical wearable below. There is
+            no server and no real patient data.
           </p>
         </div>
 
@@ -139,6 +150,61 @@ export function DemoPage() {
         <section className="mt-12">
           <h2 className="serif border-b border-rule pb-4 text-[28px] leading-9 text-ink">Simulation controls</h2>
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <Group
+              title="Which device"
+              note="A deliberate choice, kept for this tab. A failed Bluetooth connection never switches to the demonstration by itself."
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <Segmented<DeviceSource>
+                  options={SOURCE_OPTIONS}
+                  value={device.source}
+                  onChange={device.chooseSource}
+                  label="Which device this app uses"
+                  size="sm"
+                />
+                <span className="text-[14px] font-semibold text-ink" aria-live="polite">
+                  {linkHeadline(device)}
+                  {device.connection === 'connected' && device.mode ? `, mode ${device.mode}` : ''}
+                </span>
+              </div>
+              {hardware ? (
+                <>
+                  <div className="mt-3 flex flex-wrap gap-2.5">
+                    {device.connection === 'connected' ? (
+                      <Button variant="outline" size="sm" onClick={device.disconnect}>
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button variant="primary" size="sm" onClick={device.connect} disabled={device.connection === 'connecting' || blocked !== null}>
+                        {device.connection === 'connecting' ? device.words.connecting : device.words.connect}
+                      </Button>
+                    )}
+                    {device.connection === 'connecting' ? (
+                      <Button variant="outline" size="sm" onClick={device.disconnect}>
+                        Cancel
+                      </Button>
+                    ) : null}
+                  </div>
+                  {linkProblem && device.connection === 'disconnected' ? (
+                    <p className="mt-3 text-[13.5px] leading-5 text-ink" role="status">
+                      <span className="font-bold">{PROBLEM_COPY[linkProblem].title}</span>
+                      {linkProblem === 'lost' ? ' ' : '. '}
+                      {PROBLEM_COPY[linkProblem].body}
+                    </p>
+                  ) : null}
+                  <p className="mt-3 text-[12.5px] leading-5 text-ink-soft">
+                    Needs Chrome or Edge on Windows or Android, on an https:// address or localhost. The wearable appears in the
+                    browser’s list as {BLE_PROFILE.advertisedName}. The link belongs to this tab; results it reports are saved as
+                    “Wearable” in the clinician record. Not yet verified against a physical board: see HARDWARE_INTEGRATION.md.
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-[12.5px] leading-5 text-ink-soft">
+                  A built-in stand-in for the wearable. Everything it produces is saved and labelled as demonstration data.
+                </p>
+              )}
+            </Group>
+
             <Group title="Fictional patient" note="Who the patient app is shown as.">
               <div className="flex flex-wrap items-center gap-3">
                 <select value={patient.id} onChange={(event) => demoStore.setActivePatient(event.target.value)} className={selectClass} aria-label="Active fictional patient">
@@ -155,21 +221,27 @@ export function DemoPage() {
             </Group>
 
             <Group title="Simulated device" note="Always labelled “Demo device” in the app. Disconnecting cancels a running test and is never auto-resumed.">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-[14px] font-semibold text-ink">
-                  {device.connection === 'connected' ? 'Connected' : device.connection === 'connecting' ? 'Connecting' : 'Disconnected'}
-                  {device.mode ? `, mode ${device.mode}` : ''}
-                </span>
-                {device.connection === 'connected' ? (
-                  <Button variant="outline" size="sm" onClick={device.disconnect}>
-                    Disconnect now
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="sm" onClick={device.connect} disabled={device.connection === 'connecting'}>
-                    Reconnect
-                  </Button>
-                )}
-              </div>
+              {hardware ? (
+                <p className="text-[14px] leading-[22px] text-ink">
+                  These controls act on the demonstration device only. Choose Demonstration above to use them.
+                </p>
+              ) : (
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-[14px] font-semibold text-ink">
+                    {device.connection === 'connected' ? 'Connected' : device.connection === 'connecting' ? 'Connecting' : 'Disconnected'}
+                    {device.mode ? `, mode ${device.mode}` : ''}
+                  </span>
+                  {device.connection === 'connected' ? (
+                    <Button variant="outline" size="sm" onClick={device.disconnect}>
+                      Disconnect now
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={device.connect} disabled={device.connection === 'connecting'}>
+                      Reconnect
+                    </Button>
+                  )}
+                </div>
+              )}
               <div className="mt-3">
                 <Check checked={scenario.dropLinkOnNextTest} onChange={(value) => demoStore.setScenario({ dropLinkOnNextTest: value })}>
                   Drop the connection 4 seconds into the next test (one time)
@@ -180,7 +252,14 @@ export function DemoPage() {
               </div>
             </Group>
 
-            <Group title="Next test" note="Timed follows the firmware: the result is the level active when “I Feel It” is tapped.">
+            <Group
+              title="Next test"
+              note={
+                hardware
+                  ? 'Demonstration only. With the physical wearable connected, the firmware alone decides the result.'
+                  : 'Timed follows the firmware: the result is the level active when “I Feel It” is tapped.'
+              }
+            >
               <div className="flex flex-wrap items-center gap-3">
                 <Segmented<'timed' | 'scripted'>
                   options={[
@@ -223,7 +302,7 @@ export function DemoPage() {
               <p className="mt-2 text-[12.5px] leading-5 text-ink-soft">Fast preview is for rehearsals only. To see “not felt”, start a test and don’t tap.</p>
             </Group>
 
-            <Group title="Log a result for today" note="Adds a record without running the test.">
+            <Group title="Log a result for today" note="Adds a demonstration record without running the test. Never labelled as coming from the wearable.">
               <div className="flex flex-wrap items-center gap-2.5">
                 <select value={logLevel} onChange={(event) => setLogLevel(Number(event.target.value) as RehabLevel)} className={selectClass} aria-label="Level to log">
                   {REHAB_LEVELS.map((step) => (
@@ -300,12 +379,15 @@ export function DemoPage() {
           </div>
         </section>
 
-        {/* Protocol monitor */}
-        <section className="mt-12">
+        {/* Developer panel */}
+        <section className="mt-12" id="developer-panel">
           <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
             <div>
-              <h2 className="serif text-[28px] leading-9 text-ink">Protocol monitor</h2>
-              <p className="mt-1 text-[14.5px] leading-6 text-ink-soft">The V3 messages exchanged with the simulated device. The patient screen never shows these.</p>
+              <h2 className="serif text-[28px] leading-9 text-ink">Developer panel</h2>
+              <p className="mt-1 max-w-[80ch] text-[14.5px] leading-6 text-ink-soft">
+                Every command, notification and connection event, newest first. “BLE” lines crossed the Bluetooth link to the
+                physical wearable; “demo” lines are the built-in demonstration. The patient screens never show these.
+              </p>
             </div>
             <Button variant="outline" size="sm" onClick={() => demoStore.clearDeviceLog()}>
               Clear log
@@ -319,6 +401,7 @@ export function DemoPage() {
                 {[...state.deviceLog].reverse().map((entry, index) => (
                   <li key={`${entry.at}-${index}`} className="flex gap-4">
                     <span className="text-mist/60">{formatTime(entry.at)}</span>
+                    <span className="w-10 shrink-0 text-mist/60">{entry.via === 'ble' ? 'BLE' : 'demo'}</span>
                     <span className="w-16 shrink-0">{entry.direction === 'app' ? 'app →' : entry.direction === 'device' ? '← device' : 'link'}</span>
                     <span className={entry.direction === 'device' ? 'text-mint' : 'text-white'}>{entry.text}</span>
                   </li>
@@ -327,6 +410,17 @@ export function DemoPage() {
             )}
           </div>
         </section>
+
+        <dl className="mt-4 grid gap-x-8 gap-y-1 font-mono text-[12.5px] leading-6 text-ink-soft sm:grid-cols-[max-content_minmax(0,1fr)]">
+          <dt>Expected device name</dt>
+          <dd>{BLE_PROFILE.advertisedName}{hardware && device.connection === 'connected' ? ` (connected: ${device.label})` : ''}</dd>
+          <dt>Service</dt>
+          <dd>{BLE_PROFILE.serviceUuid}</dd>
+          <dt>RX, app to device</dt>
+          <dd>{BLE_PROFILE.rxWriteUuid} · write with response</dd>
+          <dt>TX, device to app</dt>
+          <dd>{BLE_PROFILE.txNotifyUuid} · notify</dd>
+        </dl>
 
         <p className="mt-12 text-[13.5px] leading-6 text-ink-soft">
           Interactive concept. Demonstration data, not a medical device. Concept prototype • Fictional data

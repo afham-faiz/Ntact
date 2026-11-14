@@ -32,6 +32,14 @@ export function outcomeKind(test: SensationTest): string {
   return test.stopReason === 'EARLY_RESPONSE' ? 'Cancelled (tap before first level)' : 'Cancelled';
 }
 
+/**
+ * Where a result came from. Only an outcome the physical wearable reported over
+ * Bluetooth is called "Wearable"; seeded, simulated and manually logged records are not.
+ */
+export function testSourceLabel(test: SensationTest): string {
+  return test.source === 'ble' && test.simulated === false ? 'Wearable' : 'Demonstration';
+}
+
 const FINGER_LABEL: Record<Finger, string> = {
   thumb: 'thumb',
   index: 'index finger',

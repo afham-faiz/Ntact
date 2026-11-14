@@ -60,4 +60,4 @@ History is deterministic and anchored on the day the data was last reset.
 
 ## Deliberately out of scope
 
-Bluetooth, backend, accounts, cross-device sync, heat and pressure alarms, monofilament equivalence, any diagnosis or percentage-recovered figure, patient messaging.
+Backend, accounts, cross-device sync, live pressure readings, heat and pressure alarms, monofilament equivalence, any diagnosis or percentage-recovered figure, patient messaging.

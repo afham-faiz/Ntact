@@ -129,8 +129,11 @@ export function parseNotification(raw: string): DeviceEvent {
 }
 
 /**
- * Reserved for the real Bluetooth build. Not used anywhere in this prototype.
- * The advertised name is unchanged in V3 firmware.
+ * The Bluetooth identity of the wearable, exactly as the V3 handoff prints it.
+ *
+ * The advertised name is still `SenseBridge-V2.0`: it was not changed for V3 and it
+ * was not changed when the product became Ntact. Do not edit it here unless the
+ * firmware is re-flashed with a new name at the same time.
  */
 export const BLE_PROFILE = {
   advertisedName: 'SenseBridge-V2.0',

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { assistStateOf, useDevice, type AssistState } from '../../app/DeviceContext';
 import { useActivePatient, useDemoState, useNow } from '../../app/hooks';
 import { LevelGraph } from '../../components/charts/LevelGraph';
+import { linkSummary } from './deviceCopy';
 import { PrototypeTag } from './PatientShell';
 import { painOf } from '../../domain/checkIn';
 import { dateKeyOf, formatDayLong, greetingFor, relativeDay, toDateKey } from '../../domain/dates';
@@ -23,9 +24,9 @@ const ASSIST_COPY: Record<AssistState, { state: string; line: string }> = {
   on: { state: 'On', line: 'Feedback at your wrist is enabled.' },
   paused: { state: 'Paused', line: 'Turn it back on whenever you are ready.' },
   testing: { state: 'Paused', line: 'Paused while you test.' },
-  offline: { state: 'Unavailable', line: 'Reconnect the demo device to use it.' },
-  checking: { state: 'Checking', line: 'Asking the demo device for its mode.' },
-  changing: { state: 'Updating', line: 'Waiting for the demo device.' },
+  offline: { state: 'Unavailable', line: '{Connect} the {device} to use it.' },
+  checking: { state: 'Checking', line: 'Asking the {device} for its mode.' },
+  changing: { state: 'Updating', line: 'Waiting for the {device}.' },
 };
 
 
@@ -77,7 +78,13 @@ export function TodayScreen() {
   const primaryToday = primaryTestOfDay(testsOnDay(tests, today));
   const completed = primaryToday !== null && primaryToday.outcome !== 'STOPPED';
   const checkIn = checkInOn(checkIns, today);
-  const assist = ASSIST_COPY[assistStateOf(device)];
+  const assistCopy = ASSIST_COPY[assistStateOf(device)];
+  const assist = {
+    state: assistCopy.state,
+    line: assistCopy.line
+      .replace('{Connect}', device.simulated ? 'Reconnect' : 'Connect')
+      .replace('{device}', device.words.name),
+  };
   const week = testCompletion(tests, today, 7, patient.enrolledDate);
   const connected = device.connection === 'connected';
 
@@ -147,7 +154,9 @@ export function TodayScreen() {
                   ? 'Today’s test was cancelled before a result.'
                   : connected
                     ? 'About 30 seconds.'
-                    : 'The demo device is disconnected. Reconnect it to test.'}
+                    : device.simulated
+                      ? 'The demo device is disconnected. Reconnect it to test.'
+                      : 'The Ntact device is not connected. Connect it to test.'}
               </p>
               <Link
                 to="/patient/test"
@@ -217,7 +226,7 @@ export function TodayScreen() {
           {resultsUnderReview ? <p className="mb-5 text-[17px] font-semibold leading-7 text-ink">{homeLine(tests, today, true)}</p> : null}
           <p className="flex items-baseline justify-between gap-4">
             <Link to="/patient/device" className="-my-2 py-2 underline decoration-rule underline-offset-4">
-              Demo device · {device.connection === 'connecting' ? 'Connecting' : connected ? 'Connected' : 'Disconnected'}
+              {linkSummary(device)}
             </Link>
             <span>{formatDayLong(today)}</span>
           </p>

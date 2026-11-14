@@ -28,6 +28,7 @@ import type {
   Scenario,
   SensationTest,
   SimulatedDevice,
+  TestSite,
   TestSource,
   TriageConfig,
   TriageFlag,
@@ -295,13 +296,21 @@ export class DemoStore {
   // ---------- sensation tests ----------
 
   /** Store the outcome the device reported. Called only after its notification arrives. */
-  recordTrial(patientId: string, outcome: TrialOutcome, source: TestSource, at: Date = new Date()): SensationTest {
+  recordTrial(
+    patientId: string,
+    outcome: TrialOutcome,
+    source: TestSource,
+    at: Date = new Date(),
+    site?: TestSite,
+  ): SensationTest {
     const base = {
       id: newId('test'),
       patientId,
       timestamp: at.toISOString(),
-      simulated: true as const,
+      // Only an outcome reported by the physical wearable is ever marked as not simulated.
+      simulated: source !== 'ble',
       source,
+      ...(site ? { site } : {}),
     };
     let test: SensationTest;
     if (outcome.outcome === 'FELT') {

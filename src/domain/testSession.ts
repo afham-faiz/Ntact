@@ -113,6 +113,8 @@ function onDevice(phase: TestPhase, event: DeviceEvent): TestStep {
       }
       // The sequence ended a moment before the tap reached the device. The firmware's word is final.
       if (event.type === 'COMPLETE_NO_FELT') return finish({ outcome: 'NO_FELT' });
+      // The device says it had no trial to answer for. Nothing was measured, so nothing is recorded.
+      if (event.type === 'ERR' && event.code === 'NO_TEST') return stay({ name: 'device-error', code: event.code });
       return stay(phase);
 
     case 'stopping':

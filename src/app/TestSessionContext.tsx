@@ -9,11 +9,26 @@ import { demoStore } from '../demo/store';
 import { parseNotification } from '../domain/firmware';
 import { previousFelt, testsForPatient } from '../domain/selectors';
 import { isActivePhase, isAwaitingAck, testReducer, type TestInput, type TestPhase } from '../domain/testSession';
-import type { FeltTest, SensationTest } from '../domain/types';
+import type { FeltTest, SensationTest, TestSite, TestSource } from '../domain/types';
 import { useDevice } from './DeviceContext';
 
 /** How long to wait for a single acknowledgement before telling the person something is wrong. */
 export const ACK_TIMEOUT_MS = 5_000;
+
+/**
+ * Who a test belongs to, fixed at the moment it starts.
+ *
+ * The outcome arrives from the device seconds later. By then the demo controls (or
+ * another tab) may have switched the active patient, so the record is always
+ * written against this snapshot and never against "whoever is active now".
+ */
+export interface TestSubject {
+  patientId: string;
+  /** The injured finger the sleeve is on. One finger per test with the current hardware. */
+  site: TestSite;
+  /** Which link the test ran over. A result is only labelled as real when this is 'ble'. */
+  link: 'mock' | 'ble';
+}
 
 export interface SavedResult {
   test: SensationTest;
@@ -45,6 +60,7 @@ export function TestSessionProvider({ children }: { children: ReactNode }) {
   const phaseRef = useRef<TestPhase>(phase);
   const attachedRef = useRef(false);
   const ranRef = useRef(false);
+  const subjectRef = useRef<TestSubject | null>(null);
   const deviceRef = useRef(device);
   deviceRef.current = device;
 
@@ -63,11 +79,16 @@ export function TestSessionProvider({ children }: { children: ReactNode }) {
           adapter.send(effect.command).catch(() => dispatchRef.current({ type: 'LINK_LOST' }));
         } else {
           // Reached only from a device notification: the reported outcome is saved second.
+          const subject = subjectRef.current;
+          subjectRef.current = null;
+          // No subject means no test was started from this screen, so there is nobody to
+          // attribute an outcome to. Nothing is saved rather than guessing.
+          if (!subject) continue;
           const state = demoStore.getState();
-          const patientId = state.activePatientId;
-          const earlier = testsForPatient(state.tests, patientId);
+          const earlier = testsForPatient(state.tests, subject.patientId);
           const scripted = state.scenario.result.kind === 'scripted' && effect.outcome.outcome === 'FELT';
-          const test = demoStore.recordTrial(patientId, effect.outcome, scripted ? 'mock-scripted' : 'mock-timed');
+          const source: TestSource = subject.link === 'ble' ? 'ble' : scripted ? 'mock-scripted' : 'mock-timed';
+          const test = demoStore.recordTrial(subject.patientId, effect.outcome, source, new Date(), subject.site);
           setSaved({ test, previous: previousFelt(earlier, test.timestamp) });
         }
       }
@@ -100,6 +121,12 @@ export function TestSessionProvider({ children }: { children: ReactNode }) {
     return () => {
       offMessage();
       offConnection();
+      // The wearable was switched (demonstration ↔ physical) under a test. The old device is
+      // told to stop, and the test ends as a lost connection: nothing recorded, nothing resumed.
+      if (isActivePhase(phaseRef.current)) {
+        adapter.send('STOP').catch(() => undefined);
+        dispatchRef.current({ type: 'LINK_LOST' });
+      }
     };
   }, [adapter]);
 
@@ -118,10 +145,19 @@ export function TestSessionProvider({ children }: { children: ReactNode }) {
   // These must keep the same identity across renders: the test screen calls detach from an
   // effect cleanup, and a changing identity would fire that cleanup on every phase change.
   const begin = useCallback(() => {
+    if (phaseRef.current.name !== 'ready') return;
+    // Identity is captured here, once, and not read again until the device reports an outcome.
+    const state = demoStore.getState();
+    const patient = state.patients.find((item) => item.id === state.activePatientId) ?? state.patients[0];
+    subjectRef.current = {
+      patientId: patient.id,
+      site: { hand: patient.hand, finger: patient.finger },
+      link: adapter.kind,
+    };
     ranRef.current = true;
     setSaved(null);
     dispatch({ type: 'BEGIN' });
-  }, [dispatch]);
+  }, [adapter, dispatch]);
   const tapFelt = useCallback(() => dispatch({ type: 'TAP_FELT' }), [dispatch]);
   const tapStop = useCallback(() => dispatch({ type: 'TAP_STOP' }), [dispatch]);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), [dispatch]);

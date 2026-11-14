@@ -8,6 +8,7 @@ import { Modal } from '../../components/Modal';
 import { ConceptNote, Spinner, cx } from '../../components/ui';
 import { Wordmark } from '../../components/Wordmark';
 import { isActivePhase } from '../../domain/testSession';
+import { linkSummary } from './deviceCopy';
 
 function useImmersive(): boolean {
   const { phase } = useTestSession();
@@ -99,6 +100,7 @@ function ScrollMemory() {
 
 export function PatientFrame() {
   const patient = useActivePatient();
+  const device = useDevice();
   return (
     <TestSessionProvider>
       <ScrollMemory />
@@ -107,7 +109,10 @@ export function PatientFrame() {
           <Wordmark />
           <p className="mt-7 text-[22px] font-bold leading-7 tracking-[-0.02em] text-ink">Patient app</p>
           <p className="mt-2 text-[14.5px] leading-6 text-ink-soft">
-            Shown as {patient.name}, a fictional person. The wearable is simulated: nothing here uses Bluetooth.
+            Shown as {patient.name}, a fictional person.{' '}
+            {device.simulated
+              ? 'The wearable is simulated: nothing here uses Bluetooth.'
+              : 'Set to use the physical wearable over Bluetooth.'}
           </p>
           <div className="mt-6 flex flex-col gap-2">
             <Link
@@ -369,7 +374,6 @@ export function Screen({
 /** Link state, always worded so it cannot be mistaken for a real pairing. */
 export function DevicePill({ className }: { className?: string }) {
   const device = useDevice();
-  const name = device.simulated ? 'Demo device' : device.label;
   const connected = device.connection === 'connected';
   const connecting = device.connection === 'connecting';
   return (
@@ -391,9 +395,7 @@ export function DevicePill({ className }: { className?: string }) {
       ) : (
         <Unplug className="size-4" strokeWidth={2} aria-hidden="true" />
       )}
-      <span>
-        {name} · {connecting ? 'Connecting' : connected ? 'Connected' : 'Disconnected'}
-      </span>
+      <span>{linkSummary(device)}</span>
     </Link>
   );
 }

@@ -36,8 +36,22 @@ export type DeviceEvent =
 
 export type TestOutcome = 'FELT' | 'NO_FELT' | 'STOPPED';
 
-/** Where a record came from. Every record in this prototype is simulated. */
-export type TestSource = 'seed' | 'mock-timed' | 'mock-scripted' | 'demo-panel';
+/**
+ * Where a record came from.
+ *
+ * 'ble' is the only source that involves the physical wearable: the outcome was
+ * reported by the ESP32 over Bluetooth. Every other source is the demonstration.
+ */
+export type TestSource = 'seed' | 'mock-timed' | 'mock-scripted' | 'demo-panel' | 'ble';
+
+/**
+ * The injured site a test was run on, captured when the test started. The current
+ * hardware tests one finger at a time, so there is exactly one site per record.
+ */
+export interface TestSite {
+  hand: Hand;
+  finger: Finger;
+}
 
 /**
  * USER_STOP: the patient (or the app, on leaving the screen) sent STOP.
@@ -51,8 +65,15 @@ interface TestBase {
   patientId: string;
   /** ISO timestamp. */
   timestamp: string;
-  simulated: true;
+  /** false only when the outcome was reported by the physical wearable (`source: 'ble'`). */
+  simulated: boolean;
   source: TestSource;
+  /**
+   * Which finger was tested. Absent on older and seeded records, where it is the
+   * patient's recorded injury site. Present on every test run from the app, so a
+   * later multi-finger build can tell records apart without a migration.
+   */
+  site?: TestSite;
 }
 
 export interface FeltTest extends TestBase {
@@ -252,7 +273,7 @@ export interface Scenario {
   driverFault: boolean;
 }
 
-/** Stands in for the physical wearable. Lives in localStorage so every tab sees one device. */
+/** The demonstration wearable. Lives in localStorage so every tab sees one demo device. */
 export interface SimulatedDevice {
   linkUp: boolean;
   mode: DeviceMode;
@@ -262,6 +283,8 @@ export interface DeviceLogEntry {
   at: string;
   direction: 'app' | 'device' | 'link';
   text: string;
+  /** Which link the message crossed. Absent on older entries, which were all simulated. */
+  via?: 'mock' | 'ble';
 }
 
 export interface DemoState {

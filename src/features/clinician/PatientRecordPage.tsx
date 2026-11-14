@@ -15,7 +15,7 @@ import { buildDaySeries, checkInsForPatient, linearFit, testsForPatient } from '
 import { DIRECTION_CAVEAT, LEVEL_LABEL, RESULT_RULES, RULE_LABEL, deriveFlags, triageSummaries } from '../../domain/triage';
 import type { TriageLevel } from '../../domain/types';
 import { ClinicalSetupModal, FlagModal, LOCAL_ONLY, NoteModal, RecordReviewModal } from './modals';
-import { OutcomeMark, injurySite, outcomeKind } from './parts';
+import { OutcomeMark, injurySite, outcomeKind, testSourceLabel } from './parts';
 
 type Range = '14' | '30' | '90';
 const RANGES: { value: Range; label: string }[] = [
@@ -294,6 +294,7 @@ export function PatientRecordPage() {
                           ) : (
                             <span className="text-ink-soft">no level recorded</span>
                           )}
+                          <span className="text-ink-soft">{testSourceLabel(test)}</span>
                         </li>
                       ))}
                     </ul>
@@ -318,9 +319,9 @@ export function PatientRecordPage() {
 
           {/* Daily results */}
           <Panel className="overflow-hidden">
-            <Head title="Daily results" note="Every test on record, newest first." />
+            <Head title="Daily results" note="Every test on record, newest first. “Wearable” means the outcome was reported by the physical device over Bluetooth; everything else is demonstration data." />
             <div className="quiet-scroll mt-3 overflow-x-auto">
-              <table className="w-full min-w-[640px] border-collapse text-[14px] leading-6">
+              <table className="w-full min-w-[720px] border-collapse text-[14px] leading-6">
                 <thead>
                   <tr className="border-y border-rule bg-floor text-left text-[12.5px] font-semibold text-ink-soft">
                     <th scope="col" className="py-2.5 pl-6 pr-4">Date</th>
@@ -328,7 +329,8 @@ export function PatientRecordPage() {
                     <th scope="col" className="px-4 py-2.5">Result</th>
                     <th scope="col" className="px-4 py-2.5">Level</th>
                     <th scope="col" className="px-4 py-2.5">Motor command</th>
-                    <th scope="col" className="px-4 py-2.5 pr-6">Reported after</th>
+                    <th scope="col" className="px-4 py-2.5">Reported after</th>
+                    <th scope="col" className="px-4 py-2.5 pr-6">Source</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -344,12 +346,13 @@ export function PatientRecordPage() {
                       </td>
                       <td className="px-4 py-2.5 font-bold text-ink">{test.outcome === 'FELT' ? test.detectedLevel : '–'}</td>
                       <td className="px-4 py-2.5 text-ink-soft">{test.outcome === 'FELT' ? `RTP ${test.commandedRtp}` : '–'}</td>
-                      <td className="px-4 py-2.5 pr-6 text-ink-soft">{test.outcome === 'FELT' ? formatSeconds(test.elapsedMs) : '–'}</td>
+                      <td className="px-4 py-2.5 text-ink-soft">{test.outcome === 'FELT' ? formatSeconds(test.elapsedMs) : '–'}</td>
+                      <td className="whitespace-nowrap px-4 py-2.5 pr-6 text-ink-soft">{testSourceLabel(test)}</td>
                     </tr>
                   ))}
                   {allResults.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-ink-soft">
+                      <td colSpan={7} className="px-6 py-8 text-ink-soft">
                         No tests on record yet.
                       </td>
                     </tr>

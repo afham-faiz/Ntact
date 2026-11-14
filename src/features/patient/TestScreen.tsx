@@ -11,6 +11,7 @@ import { dateKeyOf, relativeDay } from '../../domain/dates';
 import { primaryTestOfDay, testsForPatient, testsOnDay } from '../../domain/selectors';
 import { toBlindedView, type TestPhase } from '../../domain/testSession';
 import type { TrialOutcome } from '../../domain/types';
+import { PROBLEM_COPY } from './deviceCopy';
 import { Screen, TopBar } from './PatientShell';
 
 // ---------- Before the test ----------
@@ -49,10 +50,10 @@ function PreTest({ arming }: { arming: boolean }) {
           <Button variant="primary" size="lg" block onClick={device.connect} disabled={device.connection === 'connecting'}>
             {device.connection === 'connecting' ? (
               <>
-                <Spinner /> Reconnecting
+                <Spinner /> {device.words.connecting}
               </>
             ) : (
-              'Reconnect demo device'
+              device.words.connect
             )}
           </Button>
         )
@@ -75,7 +76,13 @@ function PreTest({ arming }: { arming: boolean }) {
       {!connected ? (
         <p className="mt-4 flex items-start gap-2.5 rounded-[12px] bg-amber-50 px-4 py-3 text-[14.5px] leading-6 text-amber-700" role="status">
           <Unplug className="mt-1 size-4 shrink-0" strokeWidth={2} aria-hidden="true" />
-          <span>The demo device is disconnected. Reconnect it to start the test.</span>
+          <span>
+            {device.simulated
+              ? 'The demo device is disconnected. Reconnect it to start the test.'
+              : device.problem
+                ? `${PROBLEM_COPY[device.problem].title}${device.problem === 'lost' ? '' : `. ${PROBLEM_COPY[device.problem].body}`}`
+                : 'The Ntact device is not connected. Connect it to start the test.'}
+          </span>
         </p>
       ) : null}
 
@@ -122,6 +129,7 @@ function PreTest({ arming }: { arming: boolean }) {
  */
 function RunningTest({ phase }: { phase: TestPhase }) {
   const session = useTestSession();
+  const device = useDevice();
   const view = toBlindedView(phase);
   const stopping = phase.name === 'stopping';
 
@@ -159,7 +167,7 @@ function RunningTest({ phase }: { phase: TestPhase }) {
 
       <p className="mt-auto text-center text-[14.5px] leading-6 text-mist" aria-live="polite">
         {view.acknowledged
-          ? 'Thanks. Reading the result from the demo device.'
+          ? `Thanks. Reading the result from the ${device.words.name}.`
           : stopping
             ? 'Stopping the test.'
             : 'It ends on its own after about 30 seconds.'}
@@ -332,10 +340,10 @@ function ConnectionLost() {
           <Button variant="primary" size="lg" block onClick={device.connect} disabled={connecting}>
             {connecting ? (
               <>
-                <Spinner /> Reconnecting
+                <Spinner /> {device.words.connecting}
               </>
             ) : (
-              'Reconnect demo device'
+              device.words.connect
             )}
           </Button>
         )
@@ -346,7 +354,7 @@ function ConnectionLost() {
         Connection lost
       </h2>
       <p className="mt-2.5 text-[16px] leading-6 text-ink">
-        The demo device disconnected, so this test was cancelled. Nothing was saved, and the test will not pick up where it
+        The {device.words.name} disconnected, so this test was cancelled. Nothing was saved, and the test will not pick up where it
         left off.
       </p>
       {connected ? (
@@ -371,8 +379,12 @@ const ERROR_COPY: Record<string, { title: string; body: string }> = {
     body: 'It reported a problem with its vibration driver, so no test was run and nothing was saved.',
   },
   TIMEOUT: {
-    title: 'The demo device didn’t answer',
-    body: 'The app sent a command and heard nothing back. No test was run and nothing was saved.',
+    title: 'The {device} didn’t answer',
+    body: 'The app sent a command and heard nothing back. Nothing was saved.',
+  },
+  NO_TEST: {
+    title: 'The wearable had no test running',
+    body: 'Your tap reached it after the test had already ended, so there was nothing to report. Nothing was saved.',
   },
   SELECT_REHAB: {
     title: 'The wearable wasn’t ready for a test',
@@ -382,6 +394,7 @@ const ERROR_COPY: Record<string, { title: string; body: string }> = {
 
 function DeviceError({ code }: { code: string }) {
   const session = useTestSession();
+  const device = useDevice();
   const copy = ERROR_COPY[code] ?? {
     title: 'The test couldn’t start',
     body: 'The wearable reported a problem. No test was run and nothing was saved.',
@@ -401,11 +414,11 @@ function DeviceError({ code }: { code: string }) {
     >
       <IconChip icon={TriangleAlert} tone="amber" size="lg" round className="mt-2" />
       <h2 className="display mt-4 text-[27px] leading-8 text-ink" role="alert">
-        {copy.title}
+        {copy.title.replace('{device}', device.words.name)}
       </h2>
       <p className="mt-2.5 text-[16px] leading-6 text-ink">{copy.body}</p>
       <p className="mt-3 text-[13.5px] leading-5 text-ink-soft">
-        Device message: <span className="font-mono text-[12.5px]">{code === 'TIMEOUT' ? 'no reply' : `ERR,${code}`}</span>
+        The exact device message is in the developer panel, under Demo controls.
       </p>
     </ResultShell>
   );
