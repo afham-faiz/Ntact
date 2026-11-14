@@ -10,11 +10,13 @@ import { WorklistPage } from './features/clinician/WorklistPage';
 import { AssistScreen } from './features/patient/AssistScreen';
 import { CheckInScreen } from './features/patient/CheckInScreen';
 import { DeviceScreen } from './features/patient/DeviceScreen';
+import { ExerciseHome, ExerciseSessionScreen } from './features/patient/ExerciseScreen';
 import { OnboardingScreen } from './features/patient/OnboardingScreen';
 import { PatientFrame, PatientTabs } from './features/patient/PatientShell';
 import { ProgressScreen } from './features/patient/ProgressScreen';
 import { TestScreen } from './features/patient/TestScreen';
 import { TodayScreen } from './features/patient/TodayScreen';
+import { WeeklyCheckInScreen } from './features/patient/WeeklyCheckInScreen';
 
 function NotFound() {
   return (
@@ -44,7 +46,10 @@ export function App() {
               <Route index element={<TodayScreen />} />
               <Route path="assist" element={<AssistScreen />} />
               <Route path="test" element={<TestScreen />} />
+              <Route path="exercise" element={<ExerciseHome />} />
+              <Route path="exercise/open-close" element={<ExerciseSessionScreen />} />
               <Route path="check-in" element={<CheckInScreen />} />
+              <Route path="check-in/weekly" element={<WeeklyCheckInScreen />} />
               <Route path="progress" element={<ProgressScreen />} />
               <Route path="device" element={<DeviceScreen />} />
             </Route>

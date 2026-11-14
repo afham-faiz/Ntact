@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ChartSpline, ChevronLeft, House, Pointer, Unplug, Watch } from 'lucide-react';
+import { ChartSpline, ChevronLeft, Hand, House, Pointer, Unplug, Watch } from 'lucide-react';
 import { useDevice } from '../../app/DeviceContext';
 import { TestSessionProvider, useTestSession } from '../../app/TestSessionContext';
 import { useActivePatient } from '../../app/hooks';
@@ -13,6 +13,8 @@ import { linkSummary } from './deviceCopy';
 function useImmersive(): boolean {
   const { phase } = useTestSession();
   const location = useLocation();
+  // A guided exercise fills the screen: the camera picture needs the room.
+  if (location.pathname.startsWith('/patient/exercise/')) return true;
   // While a test is running the chrome goes away: nothing should be easy to hit by accident.
   return location.pathname.startsWith('/patient/test') && isActivePhase(phase) && phase.name !== 'arming';
 }
@@ -150,6 +152,7 @@ export function PatientFrame() {
 const TABS = [
   { to: '/patient', label: 'Today', icon: House, end: true },
   { to: '/patient/test', label: 'Test', icon: Pointer, end: false },
+  { to: '/patient/exercise', label: 'Exercise', icon: Hand, end: false },
   { to: '/patient/progress', label: 'Recovery', icon: ChartSpline, end: false },
   { to: '/patient/device', label: 'Device', icon: Watch, end: false },
 ] as const;
@@ -157,7 +160,7 @@ const TABS = [
 function BottomNav() {
   return (
     <nav aria-label="Patient app" className="fixed inset-x-0 bottom-0 z-30 border-t border-rule bg-paper pb-[env(safe-area-inset-bottom)] sm:static sm:z-auto sm:shrink-0 sm:pb-3">
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {TABS.map(({ to, label, end }) => (
           <li key={to}>
             <NavLink
@@ -173,10 +176,10 @@ function BottomNav() {
               {({ isActive }) => (
                 <>
                   <span
-                    className={cx('absolute inset-x-5 top-0 h-[3px]', isActive ? 'bg-wine-600' : 'bg-transparent')}
+                    className={cx('absolute inset-x-3.5 top-0 h-[3px]', isActive ? 'bg-wine-600' : 'bg-transparent')}
                     aria-hidden="true"
                   />
-                  <span className={cx('text-[15px] leading-5', isActive ? 'font-semibold text-ink' : 'text-ink-soft')}>{label}</span>
+                  <span className={cx('text-[14px] leading-5', isActive ? 'font-semibold text-ink' : 'text-ink-soft')}>{label}</span>
                 </>
               )}
             </NavLink>

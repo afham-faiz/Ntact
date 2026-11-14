@@ -12,7 +12,8 @@ import { describeCold, noteOf, painOf, skinIssueOf, skinNoteOf } from '../../dom
 import { dateKeyOf, daysBetween, formatDateFull, formatDay, formatDayShort, formatSeconds, formatTime } from '../../domain/dates';
 import { ESTIMATE_LABEL, SEGMENT_LABEL, estimateReturnWindow } from '../../domain/recoveryEstimate';
 import { buildDaySeries, checkInsForPatient, linearFit, testsForPatient } from '../../domain/selectors';
-import { DIRECTION_CAVEAT, LEVEL_LABEL, RESULT_RULES, RULE_LABEL, deriveFlags, triageSummaries } from '../../domain/triage';
+import { FollowUpControl, MovementPanel, WeeklyPanel } from './MovementPanel';
+import { DIRECTION_CAVEAT, LEVEL_LABEL, RESULT_RULES, ROUTE_LABEL, ROUTE_REASON, RULE_LABEL, RULE_ROUTE, deriveFlags, triageSummaries } from '../../domain/triage';
 import type { TriageLevel } from '../../domain/types';
 import { ClinicalSetupModal, FlagModal, LOCAL_ONLY, NoteModal, RecordReviewModal } from './modals';
 import { OutcomeMark, injurySite, outcomeKind, testSourceLabel } from './parts';
@@ -192,6 +193,10 @@ export function PatientRecordPage() {
                       <dd className="text-ink">{flag.condition}</dd>
                       <dt className="text-ink-soft">What was recorded</dt>
                       <dd className="text-ink">{flag.evidence}</dd>
+                      <dt className="text-ink-soft">Goes to</dt>
+                      <dd className="text-ink">
+                        <span className="font-bold">{ROUTE_LABEL[RULE_ROUTE[flag.ruleId]]}.</span> {ROUTE_REASON[RULE_ROUTE[flag.ruleId]]}
+                      </dd>
                       {RESULT_RULES.includes(flag.ruleId) ? (
                         <>
                           <dt className="text-ink-soft">Unconfirmed</dt>
@@ -219,6 +224,7 @@ export function PatientRecordPage() {
                   </li>
                 ))}
               </ul>
+              <FollowUpControl patient={patient} state={state} level={level} />
             </div>
           </Panel>
 
@@ -451,6 +457,10 @@ export function PatientRecordPage() {
               <WeeklyBars weeks={adherence.weekly} className="mt-2" />
             </div>
           </Panel>
+
+          <MovementPanel patient={patient} state={state} today={today} />
+
+          <WeeklyPanel patient={patient} state={state} today={today} />
 
           <Panel>
             <Head title="Wear time" action={<SimulatedBadge>Simulated placeholder</SimulatedBadge>} />

@@ -16,6 +16,7 @@ import { DAILY_CHECK_IN } from '../domain/checkIn';
 import { driveForLevel, isRehabLevel, levelStartMs } from '../domain/firmware';
 import { DEFAULT_ESTIMATE_CONFIG } from '../domain/recoveryEstimate';
 import { DEFAULT_TRIAGE_CONFIG } from '../domain/triage';
+import { seedExerciseSessions, seedWeeklyCheckIns } from './exerciseSeed';
 import type {
   CheckIn,
   CheckInAnswer,
@@ -572,6 +573,10 @@ export function createSeedState(anchor: DateKey, scenario: Scenario = DEFAULT_SC
     patients,
     tests,
     checkIns,
+    weeklyCheckIns: seedWeeklyCheckIns(patients, anchor),
+    exerciseSessions: seedExerciseSessions(patients, anchor),
+    exercisePlans: {},
+    followUp: {},
     flagLog: seedFlagLog(anchor),
     clinicianFlags: [],
     clinicianNotes: seedNotes(anchor),

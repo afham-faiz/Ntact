@@ -5,7 +5,7 @@ import { useActivePatient, useDemoState, useNow } from '../../app/hooks';
 import { LevelGraph } from '../../components/charts/LevelGraph';
 import { linkSummary } from './deviceCopy';
 import { PrototypeTag } from './PatientShell';
-import { painOf } from '../../domain/checkIn';
+import { latestWeekly, painOf, weeklyDue, weeklyForPatient } from '../../domain/checkIn';
 import { dateKeyOf, formatDayLong, greetingFor, relativeDay, toDateKey } from '../../domain/dates';
 import { homeLine } from '../../domain/patientMessages';
 import {
@@ -78,6 +78,12 @@ export function TodayScreen() {
   const primaryToday = primaryTestOfDay(testsOnDay(tests, today));
   const completed = primaryToday !== null && primaryToday.outcome !== 'STOPPED';
   const checkIn = checkInOn(checkIns, today);
+  const weekly = weeklyForPatient(state.weeklyCheckIns ?? [], patient.id);
+  const weeklyIsDue = weeklyDue(weekly, today);
+  const lastWeekly = latestWeekly(weekly);
+  const exerciseDoneToday = (state.exerciseSessions ?? []).some(
+    (session) => session.patientId === patient.id && session.reps > 0 && dateKeyOf(session.timestamp) === today,
+  );
   const assistCopy = ASSIST_COPY[assistStateOf(device)];
   const assist = {
     state: assistCopy.state,
@@ -210,6 +216,14 @@ export function TodayScreen() {
           </Link>
         </Section>
 
+        <Section title="Exercises" meta={exerciseDoneToday ? 'Done today' : 'To do'} to="/patient/exercise">
+          <p className="mt-1.5 text-[16px] leading-6 text-ink-soft">
+            {exerciseDoneToday
+              ? 'Open and close, done. Your camera followed your fingers and counted for you.'
+              : 'Open and close: ten repetitions, guided by your camera. About a minute.'}
+          </p>
+        </Section>
+
         <Section title="Daily check-in" meta={checkIn ? '1 of 1 today' : '0 of 1 today'}>
           <p className="mt-1.5 text-[16px] leading-6 text-ink-soft">
             {checkIn ? `You reported pain ${painOf(checkIn) ?? '–'} of 10 today.` : 'Three short questions. Under a minute.'}
@@ -220,6 +234,19 @@ export function TodayScreen() {
           >
             {checkIn ? 'Edit today’s check-in' : 'Check in'}
           </Link>
+          <p className="mt-4 flex items-baseline justify-between gap-4 text-[15px] leading-6 text-ink-soft">
+            <span>
+              {weeklyIsDue
+                ? 'Your three weekly questions are due.'
+                : `Weekly questions answered ${lastWeekly ? relativeDay(lastWeekly.date, today).toLowerCase() : ''}.`}
+            </span>
+            <Link
+              to="/patient/check-in/weekly"
+              className="shrink-0 font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-[6px]"
+            >
+              {weeklyIsDue ? 'Answer' : 'Edit'}
+            </Link>
+          </p>
         </Section>
 
         <footer className="border-t border-rule pt-6 text-[14.5px] leading-6 text-ink-soft">

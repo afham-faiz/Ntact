@@ -310,6 +310,38 @@
   }
 }
 
+/* ---------- Guided exercise ---------- */
+
+/* The demonstration has no camera picture, so the stage is lit from the middle instead. */
+.stage-demo {
+  background:
+    radial-gradient(70% 55% at 50% 58%, rgb(58 86 101 / 0.85) 0%, rgb(34 54 65 / 0) 70%),
+    radial-gradient(120% 80% at 50% 110%, rgb(11 130 114 / 0.28) 0%, rgb(11 130 114 / 0) 60%),
+    #111c22;
+}
+
+/* Over the camera picture: darker at the edges and at the bottom, where the words sit. */
+.stage-shade {
+  background:
+    linear-gradient(180deg, rgb(17 28 34 / 0.38) 0%, rgb(17 28 34 / 0) 26%, rgb(17 28 34 / 0) 58%, rgb(17 28 34 / 0.62) 100%),
+    radial-gradient(120% 90% at 50% 45%, rgb(17 28 34 / 0) 55%, rgb(17 28 34 / 0.34) 100%);
+}
+
+@keyframes sb-cue-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cue-in {
+  animation: sb-cue-in 240ms var(--ease-soft) both;
+}
+
 .toast-in {
   animation: sb-toast-in 200ms var(--ease-soft) both;
 }

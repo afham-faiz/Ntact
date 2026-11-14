@@ -5,7 +5,8 @@
  * live in a schema so they can be reworded, reordered or replaced, and so a
  * longer weekly check-in can be added later, without touching stored records.
  */
-import type { CheckIn, CheckInAnswer, ColdSensitivity } from './types';
+import { daysBetween, type DateKey } from './dates';
+import type { CheckIn, CheckInAnswer, ColdSensitivity, Severity, WeeklyCheckIn } from './types';
 
 export type CheckInQuestion =
   | {
@@ -92,6 +93,48 @@ export const DAILY_CHECK_IN: CheckInSchema = {
     },
   ],
 };
+
+// ---------- Weekly questions ----------
+
+export const SEVERITY_OPTIONS: { value: Severity; label: string }[] = [
+  { value: 'none', label: 'None' },
+  { value: 'mild', label: 'Mild' },
+  { value: 'moderate', label: 'Moderate' },
+  { value: 'severe', label: 'Severe' },
+];
+
+export const SEVERITY_LABEL: Record<Severity, string> = {
+  none: 'None',
+  mild: 'Mild',
+  moderate: 'Moderate',
+  severe: 'Severe',
+};
+
+/** Three questions, once a week. Wording is provisional and for the team to agree. */
+export const WEEKLY_QUESTIONS = {
+  cold: 'Over the past week, how sensitive to cold has your finger been?',
+  tingling: 'Over the past week, how much tingling or pins and needles have you had in it?',
+  function: 'Over the past week, how much has your hand limited everyday tasks?',
+  functionLow: 'Not at all',
+  functionHigh: 'Couldn’t do them',
+} as const;
+
+/** How often the weekly questions come round. */
+export const WEEKLY_EVERY_DAYS = 7;
+
+export function weeklyForPatient(entries: WeeklyCheckIn[], patientId: string): WeeklyCheckIn[] {
+  return entries.filter((entry) => entry.patientId === patientId).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function latestWeekly(entries: WeeklyCheckIn[]): WeeklyCheckIn | null {
+  return entries.length > 0 ? entries[entries.length - 1] : null;
+}
+
+/** True when the last weekly answers are a week old or more, or there are none. */
+export function weeklyDue(entries: WeeklyCheckIn[], today: DateKey): boolean {
+  const latest = latestWeekly(entries);
+  return !latest || daysBetween(latest.date, today) >= WEEKLY_EVERY_DAYS;
+}
 
 export const CHECK_IN_SCHEMAS: Record<string, CheckInSchema> = {
   [DAILY_CHECK_IN.id]: DAILY_CHECK_IN,

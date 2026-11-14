@@ -11,7 +11,7 @@ import {
   triageSummaries,
   type TriageSummary,
 } from '../src/domain/triage';
-import type { DateKey } from '../src/domain/dates';
+import { dateKeyOf, type DateKey } from '../src/domain/dates';
 import type {
   CheckIn,
   DemoState,
@@ -117,9 +117,20 @@ describe('flag wording', () => {
   const FORBIDDEN = ['diagnos', 'failed', 'failing', 'surgery', 'risk score', 'normal recovery', 'deteriorat'];
   const ALL_RULES = Object.keys(RULE_LABEL) as TriageRuleId[];
 
-  /** Every flag of the seeded cohort plus a hand-raised one, so all seven rule ids are represented. */
+  /** The seeded cohort, a hand-raised flag and both exercise rules, so every rule id is represented. */
   function everyFlag(): TriageFlag[] {
     const state = seeded();
+    // Maya stops exercising for three days; Noor's estimated range falls across her last six sessions.
+    const cutoff = daysFromToday(-3);
+    state.exerciseSessions = state.exerciseSessions.filter(
+      (session) => session.patientId !== 'p-maya' || dateKeyOf(session.timestamp) < cutoff,
+    );
+    state.exerciseSessions
+      .filter((session) => session.patientId === 'p-noor')
+      .slice(-6)
+      .forEach((session, index) => {
+        session.rangeDeg = index < 3 ? 150 : 112;
+      });
     state.clinicianFlags.push({
       id: 'flag-manual-1',
       patientId: 'p-maya',
@@ -205,29 +216,38 @@ describe('configuration', () => {
     expect(summaryOf(state, 'p-priya').level).toBe('GREEN');
   });
 
-  it('turns Tomás amber when noImprovement.level is AMBER, and the flag itself carries that level', () => {
-    expect(flagFor(seeded(), 'p-tomas', 'NO_IMPROVEMENT').level).toBe('RED');
+  it('a flag carries whatever level its rule is set to: NO_IMPROVEMENT is review-soon unless changed', () => {
+    expect(flagFor(seeded(), 'p-tomas', 'NO_IMPROVEMENT').level).toBe('AMBER');
 
     const state = seeded((config) => {
-      config.noImprovement.level = 'AMBER';
+      config.noImprovement.level = 'RED';
     });
 
-    expect(flagFor(state, 'p-tomas', 'NO_IMPROVEMENT').level).toBe('AMBER');
-    expect(summaryOf(state, 'p-tomas').level).toBe('AMBER');
+    expect(flagFor(state, 'p-tomas', 'NO_IMPROVEMENT').level).toBe('RED');
   });
 
-  it('removes the RED flags when minReadingsPerHalf is 20: fourteen days cannot hold that much testing', () => {
+  it('makes skin and pain problems same-day by default, and review-soon when a clinician sets them so', () => {
+    expect(flagFor(seeded(), 'p-tomas', 'PAIN_INCREASE').level).toBe('RED');
+    expect(flagFor(seeded(), 'p-daniel', 'SKIN_ISSUE').level).toBe('RED');
+
+    const state = seeded((config) => {
+      config.painIncrease.level = 'AMBER';
+      config.skinIssue.level = 'AMBER';
+    });
+
+    expect(summaryOf(state, 'p-tomas').level).toBe('AMBER');
+    expect(summaryOf(state, 'p-daniel').level).toBe('AMBER');
+  });
+
+  it('removes NO_IMPROVEMENT when minReadingsPerHalf is 20: fourteen days cannot hold that much testing', () => {
     const state = seeded((config) => {
       config.noImprovement.minReadingsPerHalf = 20;
     });
 
     expect(allPendingRules(state)).not.toContain('NO_IMPROVEMENT');
-    for (const summary of triageSummaries(state, TODAY).values()) {
-      expect(summary.level, summary.patientId).not.toBe('RED');
-    }
-    // Their check-in flags are untouched, so both are still on the worklist.
-    expect(summaryOf(state, 'p-tomas').level).toBe('AMBER');
-    expect(summaryOf(state, 'p-daniel').level).toBe('AMBER');
+    // Their same-day check-in flags are untouched, so both are still at the top of the worklist.
+    expect(summaryOf(state, 'p-tomas').level).toBe('RED');
+    expect(summaryOf(state, 'p-daniel').level).toBe('RED');
   });
 });
 
@@ -383,7 +403,8 @@ describe('recording a review', () => {
     const reopened = summaryOf(store.getState(), 'p-tomas');
     expect(reopened.pending.map((flag) => flag.id)).toEqual([noImprovement.id]);
     expect(reopened.pending[0].status).toBe('pending');
-    expect(reopened.level).toBe('RED');
+    // Only the review-soon flag was reopened; the same-day pain flag stays reviewed.
+    expect(reopened.level).toBe('AMBER');
     expect(reopened.reviewedStillActive.map((flag) => flag.id)).toEqual([painIncrease.id]);
   });
 

@@ -288,13 +288,13 @@ describe('demo controls', () => {
     expect(triageOf(freshStore(), 'p-maya')).toEqual({ level: 'GREEN', rules: [] });
   });
 
-  it('applyHistoryPreset plateau makes the person RED through NO_IMPROVEMENT', () => {
+  it('applyHistoryPreset plateau raises NO_IMPROVEMENT, which is a review-soon flag and not a same-day one', () => {
     const store = freshStore();
 
     store.applyHistoryPreset('p-maya', 'plateau', FIXED_NOW);
 
     const triage = triageOf(store, 'p-maya');
-    expect(triage.level).toBe('RED');
+    expect(triage.level).toBe('AMBER');
     expect(triage.rules).toContain('NO_IMPROVEMENT');
     // Only this person's history was replaced.
     expect(testsForPatient(store.getState().tests, 'p-noor')).toEqual(
@@ -304,11 +304,12 @@ describe('demo controls', () => {
 
   it('applyHistoryPreset improving clears a NO_IMPROVEMENT flag and leaves check-in flags alone', () => {
     const store = freshStore();
-    expect(triageOf(store, 'p-tomas')).toEqual({ level: 'RED', rules: ['NO_IMPROVEMENT', 'PAIN_INCREASE'] });
+    // Pain is the same-day flag, so it is listed first.
+    expect(triageOf(store, 'p-tomas')).toEqual({ level: 'RED', rules: ['PAIN_INCREASE', 'NO_IMPROVEMENT'] });
 
     store.applyHistoryPreset('p-tomas', 'improving', FIXED_NOW);
 
-    expect(triageOf(store, 'p-tomas')).toEqual({ level: 'AMBER', rules: ['PAIN_INCREASE'] });
+    expect(triageOf(store, 'p-tomas')).toEqual({ level: 'RED', rules: ['PAIN_INCREASE'] });
   });
 
   it('simulateMissedTests for 3 days raises MISSED_TESTS', () => {
@@ -329,20 +330,47 @@ describe('demo controls', () => {
     expect(triageOf(store, 'p-maya')).toEqual({ level: 'AMBER', rules: ['THRESHOLD_RISE'] });
   });
 
-  it('simulateCheckInTrigger skin raises SKIN_ISSUE', () => {
+  it('simulateCheckInTrigger skin raises SKIN_ISSUE for same-day review', () => {
     const store = freshStore();
 
     store.simulateCheckInTrigger('p-maya', 'skin', FIXED_NOW);
 
-    expect(triageOf(store, 'p-maya')).toEqual({ level: 'AMBER', rules: ['SKIN_ISSUE'] });
+    expect(triageOf(store, 'p-maya')).toEqual({ level: 'RED', rules: ['SKIN_ISSUE'] });
   });
 
-  it('simulateCheckInTrigger pain raises PAIN_INCREASE', () => {
+  it('simulateCheckInTrigger pain raises PAIN_INCREASE for same-day review', () => {
     const store = freshStore();
 
     store.simulateCheckInTrigger('p-maya', 'pain', FIXED_NOW);
 
-    expect(triageOf(store, 'p-maya')).toEqual({ level: 'AMBER', rules: ['PAIN_INCREASE'] });
+    expect(triageOf(store, 'p-maya')).toEqual({ level: 'RED', rules: ['PAIN_INCREASE'] });
+  });
+
+  it('simulateMissedExercises for 3 days raises MISSED_EXERCISES', () => {
+    const store = freshStore();
+
+    store.simulateMissedExercises('p-maya', 3, FIXED_NOW);
+
+    expect(triageOf(store, 'p-maya')).toEqual({ level: 'AMBER', rules: ['MISSED_EXERCISES'] });
+  });
+
+  it('simulateMovementDecline raises MOVEMENT_DECLINE with demonstration data only', () => {
+    const store = freshStore();
+
+    store.simulateMovementDecline('p-maya', FIXED_NOW);
+
+    expect(triageOf(store, 'p-maya')).toEqual({ level: 'AMBER', rules: ['MOVEMENT_DECLINE'] });
+    expect(store.getState().exerciseSessions.every((session) => session.simulated)).toBe(true);
+  });
+
+  it('the seeded exercise history raises no flag by itself', () => {
+    const store = freshStore();
+    const flags = [...triageSummaries(store.getState(), TODAY).values()].flatMap((summary) =>
+      summary.pending.map((flag) => flag.ruleId),
+    );
+    expect(flags).not.toContain('MISSED_EXERCISES');
+    expect(flags).not.toContain('MOVEMENT_DECLINE');
+    expect(store.getState().exerciseSessions.length).toBeGreaterThan(100);
   });
 
   it('reset() returns to the seed, and the judge-demo preset scripts the next result as step 4', () => {

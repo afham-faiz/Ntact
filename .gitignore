@@ -8,3 +8,6 @@ docs/screenshots/_tmp
 
 .vercel
 .env*
+
+# MediaPipe runtime, copied from node_modules at dev and build time
+public/mediapipe

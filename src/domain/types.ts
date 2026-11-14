@@ -112,6 +112,48 @@ export type TrialOutcome =
   | { outcome: 'NO_FELT' }
   | { outcome: 'STOPPED'; stopReason: StopReason };
 
+// ---------- Guided exercises ----------
+
+export type ExerciseId = 'open-close';
+
+/**
+ * camera: tracked from this device's camera. The only source that is not simulated.
+ * demo-motion: the built-in animated hand, for showing the screen without a camera.
+ * seed / demo-panel: example history.
+ */
+export type ExerciseSource = 'camera' | 'demo-motion' | 'seed' | 'demo-panel';
+
+/**
+ * One guided exercise session.
+ *
+ * The three angle fields are CAMERA ESTIMATES for the injured finger: the three
+ * joints added together, typically within 10 to 20 degrees of the truth and worse
+ * when the hand is turned. They exist to show a trend. They are not goniometry.
+ */
+export interface ExerciseSession {
+  id: string;
+  patientId: string;
+  /** ISO timestamp. */
+  timestamp: string;
+  exerciseId: ExerciseId;
+  reps: number;
+  targetReps: number;
+  /** True when the target number of repetitions was reached. */
+  completed: boolean;
+  durationMs: number;
+  /** The finger the estimates refer to, captured when the session started. */
+  site: TestSite;
+  /** Typical peak bend, degrees. null when no repetition was counted. */
+  flexDeg: number | null;
+  /** Typical bend remaining with the hand open, degrees. */
+  extDeg: number | null;
+  /** The arc moved through: flexDeg minus extDeg. */
+  rangeDeg: number | null;
+  source: ExerciseSource;
+  /** false only for `source: 'camera'`. */
+  simulated: boolean;
+}
+
 // ---------- Patient-reported check-in ----------
 
 export type ColdSensitivity = 'none' | 'mild' | 'moderate' | 'severe';
@@ -131,6 +173,26 @@ export interface CheckIn {
   schemaId: string;
   answers: Record<string, CheckInAnswer>;
   /** ISO timestamp of the last save. */
+  updatedAt: string;
+}
+
+/** How strong a symptom has been over the week. Shared by the weekly questions. */
+export type Severity = 'none' | 'mild' | 'moderate' | 'severe';
+
+/**
+ * The weekly questions. Kept apart from the daily check-in on purpose: the daily
+ * rules assume one daily record per day, and a weekly answer must never be read
+ * as a missing pain score.
+ */
+export interface WeeklyCheckIn {
+  id: string;
+  patientId: string;
+  /** Local calendar day it was answered. */
+  date: string;
+  cold: Severity;
+  tingling: Severity;
+  /** 0 = everyday tasks not limited at all, 10 = could not do them. */
+  function: number;
   updatedAt: string;
 }
 
@@ -176,7 +238,15 @@ export type TriageRuleId =
   | 'NO_FELT_RECENT'
   | 'SKIN_ISSUE'
   | 'PAIN_INCREASE'
+  | 'MISSED_EXERCISES'
+  | 'MOVEMENT_DECLINE'
   | 'CLINICIAN_FLAG';
+
+/**
+ * Who a flag is for. Sensation results go to the surgical team, movement and
+ * adherence to hand therapy, and wound, skin or pain problems to same-day review.
+ */
+export type CareRoute = 'surgeon' | 'therapist' | 'same-day' | 'team';
 
 export interface TriageFlag {
   /** Stable for a given patient, rule and triggering evidence, so a review sticks to what was reviewed. */
@@ -242,7 +312,13 @@ export interface TriageConfig {
     baselineDays: number;
     minBaselineEntries: number;
     withinDays: number;
+    /** A latest pain score at or above this raises the flag on its own, with no baseline needed. */
+    severeAt: number;
   };
+  /** Days in a row, counted back from yesterday, with no exercise session. */
+  missedExercises: { enabled: boolean; level: RuleLevel; consecutiveDays: number };
+  /** Camera-estimated range of the injured finger falling across recent sessions. */
+  movementDecline: { enabled: boolean; level: RuleLevel; minDropDeg: number; sessionsPerSide: number };
 }
 
 /** Assumptions behind the clinician-only illustrative return window. All provisional. */
@@ -295,6 +371,18 @@ export interface DemoState {
   patients: Patient[];
   tests: SensationTest[];
   checkIns: CheckIn[];
+  weeklyCheckIns: WeeklyCheckIn[];
+  exerciseSessions: ExerciseSession[];
+  /**
+   * Exercises a clinician has unlocked, per patient id. A patient with no entry
+   * has the phase 1 exercise only. The app never unlocks anything by itself.
+   */
+  exercisePlans: Record<string, ExerciseId[]>;
+  /**
+   * Patients a clinician has moved to patient-initiated follow-up, with the day it
+   * was decided. Always a clinician's decision: the app only shows who is eligible.
+   */
+  followUp: Record<string, { since: string }>;
   /** Snapshots of flags a clinician has recorded a review for. */
   flagLog: TriageFlag[];
   clinicianFlags: ClinicianFlag[];

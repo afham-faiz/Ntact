@@ -41,6 +41,21 @@ const RULES: { key: RuleKey; id: TriageRuleId; params: { field: string; label: s
       { field: 'baselineDays', label: 'Baseline, days', min: 2, max: 28 },
       { field: 'minBaselineEntries', label: 'Baseline check-ins', min: 1, max: 28 },
       { field: 'withinDays', label: 'Within, days', min: 1, max: 14 },
+      { field: 'severeAt', label: 'Severe at, out of 10', min: 1, max: 10 },
+    ],
+  },
+  {
+    key: 'missedExercises',
+    id: 'MISSED_EXERCISES',
+    params: [{ field: 'consecutiveDays', label: 'Consecutive days', min: 1, max: 30 }],
+  },
+  {
+    key: 'movementDecline',
+    id: 'MOVEMENT_DECLINE',
+    caveat: 'Range is estimated from a phone or laptop camera. It shows a trend; it is not goniometry.',
+    params: [
+      { field: 'minDropDeg', label: 'Drop, degrees', min: 5, max: 90 },
+      { field: 'sessionsPerSide', label: 'Sessions compared', min: 1, max: 10 },
     ],
   },
 ];
@@ -115,7 +130,7 @@ export function RulesPage() {
 
       <Section
         title="Triage rules"
-        note="Red means priority review, amber means review suggested. A record with no pending flag shows “No current review trigger”, which is not a statement about recovery."
+        note="Red means same-day review, amber means review soon. Each rule is routed to the team shown beside it. A record with no pending flag shows “No current review trigger”, which is not a statement about recovery."
         action={
           <Button
             variant="outline"
@@ -166,8 +181,8 @@ export function RulesPage() {
                       onChange={(event) => patchRule(rule.key, { level: event.target.value })}
                       className="h-10 rounded-[10px] border border-rule bg-paper px-2.5 text-[14px] font-semibold text-ink"
                     >
-                      <option value="RED">Priority review</option>
-                      <option value="AMBER">Review suggested</option>
+                      <option value="RED">Same-day review</option>
+                      <option value="AMBER">Review soon</option>
                     </select>
                   </label>
                   <label className="flex h-10 cursor-pointer items-center gap-2 text-[14px] font-semibold text-ink">

@@ -50,6 +50,10 @@ const FINGER_LABEL: Record<Finger, string> = {
 
 const HAND_LABEL: Record<Hand, string> = { left: 'Left', right: 'Right' };
 
+export function fingerName(finger: Finger): string {
+  return FINGER_LABEL[finger];
+}
+
 export function injurySite(patient: Pick<Patient, 'hand' | 'finger'>): string {
   return `${HAND_LABEL[patient.hand]} ${FINGER_LABEL[patient.finger]}`;
 }
@@ -85,7 +89,9 @@ export const RULE_SHORT: Record<TriageRuleId, string> = {
   THRESHOLD_RISE: 'Two rising readings',
   NO_FELT_RECENT: 'Recent test not felt',
   SKIN_ISSUE: 'New skin issue',
-  PAIN_INCREASE: 'Pain increase',
+  PAIN_INCREASE: 'Severe or rising pain',
+  MISSED_EXERCISES: 'Missed exercises',
+  MOVEMENT_DECLINE: 'Movement falling',
   CLINICIAN_FLAG: 'Marked by hand',
 };
 

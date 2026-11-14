@@ -17,6 +17,7 @@ const SCENES = [
   { title: 'Touch Assist', to: '/patient/assist', text: 'Pressure at a numb fingertip becomes feedback at the wrist. Pause and enable the mode.' },
   { title: 'Blinded daily test', to: '/patient/test', text: 'Start the test. The screen never shows the level. Tap “I Feel It” after a few seconds.' },
   { title: 'Recovery curve', to: '/patient/progress', text: 'The new point is on the curve. Gaps and not-felt days stay honest.' },
+  { title: 'Guided exercise', to: '/patient/exercise', text: 'The camera follows the fingers, counts repetitions and coaches in real time. Use the demonstration hand if there is no camera.' },
   { title: 'Daily check-in', to: '/patient/check-in', text: 'Four quick answers. Report a new skin issue to see it reach the clinician.' },
   { title: 'Clinician triage', to: '/clinician', text: 'The worklist is ordered by review status. Open a record, read why it is flagged, record a review.' },
 ];
@@ -118,7 +119,7 @@ export function DemoPage() {
         <section className="mt-12">
           <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
             <div>
-              <h2 className="serif text-[28px] leading-9 text-ink">Five-scene judge demo</h2>
+              <h2 className="serif text-[28px] leading-9 text-ink">Six-scene judge demo</h2>
               <p className="mt-1 text-[14.5px] leading-6 text-ink-soft">Load the preset first: it resets the data and makes the next test report level 4, after yesterday’s level 5.</p>
             </div>
             <Button
@@ -354,7 +355,13 @@ export function DemoPage() {
                   Pain increase check-in
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => { demoStore.applyHistoryPreset(patient.id, 'plateau'); done('Flat history applied.'); }}>
-                  Priority: flat for five weeks
+                  Flat for five weeks
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { demoStore.simulateMissedExercises(patient.id, 3); done('Last three days of exercises removed.'); }}>
+                  Three missed exercise days
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { demoStore.simulateMovementDecline(patient.id); done('Falling movement written.'); }}>
+                  Finger movement falling
                 </Button>
               </div>
             </Group>

@@ -60,7 +60,10 @@ Full step-by-step hardware checklist, troubleshooting and nRF Connect instructio
 | `/patient` | Home: today's test, Touch Assist, recent tests, daily check-in |
 | `/patient/assist` | Touch Assist explanation and enable/pause |
 | `/patient/test` | Pre-test, blinded test, results, connection-lost and device-error states |
+| `/patient/exercise` | Guided exercises: the plan, movement trend, privacy and accuracy notes |
+| `/patient/exercise/open-close` | Live session: camera hand tracking, rep counting, real-time coaching. Add `?mode=demo` for the drawn demonstration hand |
 | `/patient/check-in` | Four-question daily check-in, editable the same day |
+| `/patient/check-in/weekly` | Three weekly questions: cold sensitivity, tingling, everyday function |
 | `/patient/progress` | Recovery curve, reported pain, day-by-day history |
 | `/patient/device` | Connect and disconnect, device switch, mode, details, troubleshooting |
 | `/clinician` | Triage worklist: summary filters and a table ordered by review status |
@@ -68,17 +71,46 @@ Full step-by-step hardware checklist, troubleshooting and nRF Connect instructio
 | `/clinician/reviews` | Every review flag, with record-review and reopen |
 | `/clinician/rules` | Editable provisional triage rules and return-window assumptions |
 
-## Five-scene demo
+## Six-scene demo
 
 On `/demo`, press **Load judge-demo preset** (resets the data; the next test reports step 4 after yesterday's step 5). Then:
 
 1. **Touch Assist** (`/patient/assist`): pressure at the fingertip becomes feedback at the wrist.
 2. **Blinded test** (`/patient/test`): start, wait a few seconds, tap "I Feel It". The screen never shows the level.
 3. **Recovery curve** (`/patient/progress`): the new point is there; gaps and not-felt days are shown honestly.
-4. **Check-in** (`/patient/check-in`): answer "Yes" to new skin issues.
-5. **Clinician** (`/clinician`): Maya now appears under "Review suggested". Open her record, read the exact condition, record a review.
+4. **Guided exercise** (`/patient/exercise`): start with the camera and open and close your hand ten times.
+5. **Check-in** (`/patient/check-in`): answer "Yes" to new skin issues.
+6. **Clinician** (`/clinician`): Maya now appears under "Same-day review", routed to the same-day clinic. Open her record, read the exact condition, see her movement trend, record a review.
 
 Use one browser for the whole demo (separate tabs or windows are fine).
+
+## Guided exercises (camera)
+
+The patient holds their hand up to the camera. The app tracks 21 points on the hand, counts repetitions, and coaches in real time ("Keep curling, gently", "Bring your index finger in with the others"). One exercise is built: **Open and close**, ten repetitions. More are added by defining them in `src/domain/exercise.ts`.
+
+- **Tracking:** MediaPipe Hand Landmarker, running in the browser (`src/exercise/cameraHand.ts`). The WebAssembly runtime is served by this app from `/mediapipe/wasm` (copied out of `node_modules` by `scripts/copy-mediapipe.mjs` before `dev` and `build`). The hand model, about 8 MB, is fetched from Google's public model storage the first time and then cached, so the first session needs a connection.
+- **Privacy:** video never leaves the device. Nothing is recorded or uploaded; only repetitions and estimated angles are saved.
+- **Where it works:** Chrome, Edge and Safari, including iPhone, on `https://` or `localhost`. (Unlike Bluetooth, the camera does work on iPhone.)
+- **Accuracy:** angles come from one camera view and are typically within 10 to 20 degrees, worse if the hand is turned. They are shown as estimates ("about 140°", "≈140°") for guidance and trend. They are not goniometry, and the clinician record says so.
+- **Limited movement still counts:** a repetition needs the hand to close and re-open by a relative amount, not to reach a full fist.
+- **Demonstration hand:** `?mode=demo` plays a drawn hand through the same counter, for showing the screen without a camera. It is labelled "Demonstration" and saved as simulated. The app never switches to it by itself.
+- **Not yet verified with a real hand on camera:** the engine is tested against the drawn hand and the model was confirmed to load and run in a browser, but the development browser blocks camera access. Try it on a laptop or phone before relying on it.
+
+## Priority levels, routing and follow-up
+
+All from plain, readable rules (`src/domain/triage.ts`). There is no score and no model.
+
+| Level | Meaning | Rules |
+| --- | --- | --- |
+| Red | Same-day review | New skin issue; pain 8/10 or higher, or 3+ points above the week's median |
+| Amber | Review soon | Sensation flat for four weeks; level rising; recent test not felt; missed tests; missed exercise days; finger movement falling |
+| Green | No current review trigger | A clinician may move the patient to patient-initiated follow-up |
+
+- **Routing:** each flag names who it is for. Sensation results go to the surgical team, movement and adherence to hand therapy, skin and pain to the same-day clinic.
+- **Clinician control:** only a clinician unlocks an exercise, and only a clinician moves a patient to (or back from) patient-initiated follow-up. Both are on the patient record.
+- **Patient wording:** patients see encouraging summaries only. Flags, levels and routing are never shown in the patient app.
+- **No alert is sent anywhere.** A red flag appears in the clinician portal of the same browser. There is no messaging, paging or backend.
+- **Not built, because the hardware cannot report it:** a pressure check during the sensation test, and wear time. V3 firmware sends neither. Wear time remains a labelled placeholder.
 
 ## What is simulated, and what is not shown
 
@@ -109,12 +141,13 @@ src/domain/     types, firmware contract, test state machine, triage rules, retu
                 check-in schema, adherence, patient messaging, selectors
 src/devices/    DeviceAdapter (the seam), MockDeviceAdapter (demonstration), BleDeviceAdapter (Web Bluetooth),
                 source (which of the two this tab uses)
+src/exercise/   camera hand tracking (MediaPipe), the drawn demonstration hand, canvas drawing
 src/demo/       seed data (nine fictional patients) and the localStorage store
 src/app/        React providers: device status, test session
 src/components/ shared UI and charts
 src/features/   patient, clinician, demo screens
-tests/          335 tests: domain, store, simulated device, Bluetooth adapter, and the device and
-                test-session providers end to end
+tests/          376 tests: domain, store, simulated device, Bluetooth adapter, device and test-session
+                providers end to end, the exercise engine, and the care model (routing, follow-up, weekly)
 ```
 
 The Bluetooth tests run against a pretend ESP32 (`tests/fakeBle.ts`) written from the handoff. They show the app keeps its side of the protocol. They do not show that a board works. There are no screen-level component or navigation tests yet.

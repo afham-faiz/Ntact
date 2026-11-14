@@ -12,7 +12,7 @@ import {
   testsForPatient,
   type Completion,
 } from '../../domain/selectors';
-import { LEVEL_LABEL, RULE_LABEL, compareLevels, triageSummaries, type TriageSummary } from '../../domain/triage';
+import { LEVEL_LABEL, ROUTE_LABEL, RULE_LABEL, RULE_ROUTE, compareLevels, triageSummaries, type TriageSummary } from '../../domain/triage';
 import type { DemoState, Patient, SensationTest, TriageLevel } from '../../domain/types';
 import { injurySite, outcomeText } from './parts';
 
@@ -182,9 +182,9 @@ export function WorklistPage() {
 
       {/* Summary: one panel, four cells. The triage cells filter the list. */}
       <div className="grid overflow-hidden rounded-[14px] border border-rule bg-paper sm:grid-cols-2 xl:grid-cols-5 [&>*]:border-rule sm:[&>*]:border-l sm:[&>*:first-child]:border-l-0">
-        <Stat mark={MARK.RED} value={counts.RED} label="Priority review" note="Look at these first" selected={filter === 'RED'} onSelect={() => toggle('RED')} />
-        <Stat mark={MARK.AMBER} value={counts.AMBER} label="Review suggested" note="A rule has been met" selected={filter === 'AMBER'} onSelect={() => toggle('AMBER')} />
-        <Stat mark={MARK.GREEN} value={counts.GREEN} label="No current review trigger" note="Not a statement about recovery" selected={filter === 'GREEN'} onSelect={() => toggle('GREEN')} />
+        <Stat mark={MARK.RED} value={counts.RED} label="Same-day review" note="Wound, skin or pain: look today" selected={filter === 'RED'} onSelect={() => toggle('RED')} />
+        <Stat mark={MARK.AMBER} value={counts.AMBER} label="Review soon" note="A rule has been met" selected={filter === 'AMBER'} onSelect={() => toggle('AMBER')} />
+        <Stat mark={MARK.GREEN} value={counts.GREEN} label="No current review trigger" note="Can be considered for patient-initiated follow-up" selected={filter === 'GREEN'} onSelect={() => toggle('GREEN')} />
         <Stat
           value={counts.missed}
           label="Missed-test follow-up"
@@ -246,7 +246,7 @@ export function WorklistPage() {
                 <th scope="col" className="w-[10%] px-4 py-2.5">Since repair</th>
                 <th scope="col" className="w-[13%] px-4 py-2.5">Last test</th>
                 <th scope="col" className="w-[15%] px-4 py-2.5">Monitoring, 14 days</th>
-                <th scope="col" className="px-4 py-2.5">Review reasons</th>
+                <th scope="col" className="px-4 py-2.5">Review reasons, and who they go to</th>
                 <th scope="col" className="w-12">
                   <span className="sr-only-live">Open record</span>
                 </th>
@@ -326,11 +326,14 @@ export function WorklistPage() {
                           {row.triage.pending.map((flag) => (
                             <li key={flag.id} className="text-[14px] leading-[22px] text-ink">
                               {RULE_LABEL[flag.ruleId]}
+                              <span className="whitespace-nowrap text-ink-soft"> · {ROUTE_LABEL[RULE_ROUTE[flag.ruleId]]}</span>
                             </li>
                           ))}
                         </ul>
                       ) : row.triage.reviewedStillActive.length > 0 ? (
                         <span className="text-[14px] leading-[22px] text-ink-soft">Reviewed. The condition is still met.</span>
+                      ) : state.followUp?.[row.patient.id] ? (
+                        <span className="text-[14px] leading-[22px] text-ink-soft">Patient-initiated follow-up. No routine visit.</span>
                       ) : (
                         <span className="text-[14px] text-ink-faint">None</span>
                       )}
