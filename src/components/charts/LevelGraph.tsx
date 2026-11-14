@@ -1,10 +1,10 @@
 /**
- * The patient's graph: a plain line graph of the level felt each day.
- * Used on the home screen (last seven days) and on Recovery (any range), so the
- * two always look the same.
+ * The patient's graph: the level felt each day, drawn as a soft line over a faded
+ * fill, in the same style as the movement trend on the Physio screen.
  *
- * Still strict about the data: the line only joins days next to each other, and
- * a day with no result is never placed on the 1–10 scale.
+ * Still strict about the data: the solid line only joins days next to each other,
+ * a gap between them is dashed, and a day with no result is never placed on the
+ * 1–10 scale.
  */
 import { useMemo, type PointerEvent } from 'react';
 import { useElementWidth } from '../../app/hooks';
@@ -49,6 +49,15 @@ export function LevelGraph({
   const height = bottom + (roomy ? 44 : 40);
 
   const runs = useMemo(() => feltRuns(series), [series]);
+  /** The most recent day with a level: the one point that is always labelled. */
+  const latestFelt = useMemo(() => {
+    for (let index = series.length - 1; index >= 0; index -= 1) if (series[index].kind === 'FELT') return index;
+    return -1;
+  }, [series]);
+  const dot = clamp(band * 0.14, 2, 3.4);
+  /** Every day that has a level, in order. */
+  const felt = useMemo(() => runs.flatMap((run) => run.indexes), [runs]);
+  const at = (index: number) => `${centre(index).toFixed(1)},${y(series[index].step as number).toFixed(1)}`;
   const labels = useMemo(
     () =>
       roomy
@@ -83,9 +92,25 @@ export function LevelGraph({
           if (event.buttons > 0 || event.pointerType === 'touch') pick(event);
         }}
       >
+        <defs>
+          <linearGradient id="level-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={C.teal400} stopOpacity="0.26" />
+            <stop offset="1" stopColor={C.teal400} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
         {[1, 5, 10].map((level) => (
           <g key={level}>
-            <line x1={FRAME.left} x2={width - FRAME.right} y1={y(level)} y2={y(level)} stroke={C.ink} strokeOpacity={0.1} strokeWidth={1} />
+            <line
+              x1={FRAME.left}
+              x2={width - FRAME.right}
+              y1={y(level)}
+              y2={y(level)}
+              stroke={C.ink}
+              strokeOpacity={0.07}
+              strokeWidth={1}
+              strokeDasharray={level === 1 ? undefined : '2 5'}
+            />
             <text x={FRAME.left - 8} y={y(level)} dy="0.34em" textAnchor="end" fontSize={11.5} fill={C.inkSoft} className="nums">
               {level}
             </text>
@@ -93,17 +118,45 @@ export function LevelGraph({
         ))}
 
         {active !== null ? (
-          <line x1={centre(active)} x2={centre(active)} y1={top - 6} y2={bottom} stroke={C.ink} strokeOpacity={0.25} strokeDasharray="3 3" />
+          <line x1={centre(active)} x2={centre(active)} y1={top - 6} y2={bottom} stroke={C.teal600} strokeOpacity={0.3} strokeDasharray="3 3" />
         ) : null}
 
+        {/* One soft fade under every day that has a level, so the shape reads at a glance. */}
+        {felt.length > 1 ? (
+          <path
+            d={`M ${felt.map(at).join(' L ')} L ${centre(felt[felt.length - 1]).toFixed(1)},${bottom} L ${centre(felt[0]).toFixed(1)},${bottom} Z`}
+            fill="url(#level-fill)"
+          />
+        ) : null}
+
+        {/* Days with no level in between are bridged with dashes: a gap, not a measurement. */}
+        {runs.slice(1).map((run, position) => {
+          const before = runs[position].indexes;
+          return (
+            <line
+              key={`gap-${run.indexes[0]}`}
+              x1={centre(before[before.length - 1])}
+              y1={y(series[before[before.length - 1]].step as number)}
+              x2={centre(run.indexes[0])}
+              y2={y(series[run.indexes[0]].step as number)}
+              stroke={C.teal600}
+              strokeOpacity={0.45}
+              strokeWidth={1.8}
+              strokeDasharray="2 5"
+              strokeLinecap="round"
+            />
+          );
+        })}
+
+        {/* The solid line only ever joins days next to each other. */}
         {runs.map((run) =>
           run.indexes.length > 1 ? (
             <polyline
               key={run.indexes[0]}
-              points={run.indexes.map((index) => `${centre(index).toFixed(1)},${y(series[index].step as number).toFixed(1)}`).join(' ')}
+              points={run.indexes.map(at).join(' ')}
               fill="none"
-              stroke={C.ink}
-              strokeWidth={2.5}
+              stroke={C.teal600}
+              strokeWidth={2.4}
               strokeLinejoin="round"
               strokeLinecap="round"
             />
@@ -116,12 +169,19 @@ export function LevelGraph({
           const isActive = index === active;
           if (point.kind === 'FELT') {
             const cy = y(point.step as number);
+            const isLatest = index === latestFelt;
+            // Only the latest point and the one being looked at are solid and numbered; the rest stay quiet.
+            const strong = isLatest || isActive || isToday;
             return (
               <g key={point.date}>
-                {isActive ? <circle cx={cxValue} cy={cy} r={radius + 6} fill={C.ink} fillOpacity={0.14} /> : null}
-                <circle cx={cxValue} cy={cy} r={isToday ? radius + 1.5 : radius} fill={isToday ? C.wine600 : C.ink} />
-                {numbered || isActive || isToday ? (
-                  <text x={cxValue} y={cy - radius - 7} textAnchor="middle" fontSize={12} fontWeight={700} fill={C.ink} className="nums">
+                {isActive ? <circle cx={cxValue} cy={cy} r={radius + 7} fill={C.teal600} fillOpacity={0.14} /> : null}
+                {strong ? (
+                  <circle cx={cxValue} cy={cy} r={Math.max(4.2, radius)} fill={C.teal600} stroke={C.paper} strokeWidth={2} />
+                ) : (
+                  <circle cx={cxValue} cy={cy} r={dot} fill={C.paper} stroke={C.teal600} strokeWidth={1.7} />
+                )}
+                {strong || (roomy && numbered) ? (
+                  <text x={cxValue} y={cy - Math.max(4.2, radius) - 7} textAnchor="middle" fontSize={12.5} fontWeight={700} fill={C.ink} className="nums">
                     {point.step}
                   </text>
                 ) : null}

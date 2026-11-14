@@ -11,9 +11,9 @@ export function BridgeMark({
   className?: string;
   tone?: 'light' | 'dark' | 'teal';
 }) {
-  const line = tone === 'dark' ? '#C4F1C9' : tone === 'teal' ? '#0B8272' : '#223641';
-  const from = tone === 'dark' ? '#C4F1C9' : tone === 'teal' ? '#0B8272' : '#223641';
-  const to = tone === 'dark' ? '#FFFFFF' : '#14A38C';
+  const line = tone === 'dark' ? '#ECB424' : tone === 'teal' ? '#2E4A7D' : '#14213D';
+  const from = tone === 'dark' ? '#ECB424' : tone === 'teal' ? '#2E4A7D' : '#14213D';
+  const to = tone === 'dark' ? '#FFFFFF' : '#3D63A6';
   return (
     <svg viewBox="0 0 30 20" className={cx('h-5 w-[30px]', className)} fill="none" aria-hidden="true">
       <path d="M5 15C5 2.5 25 2.5 25 15" stroke={line} strokeWidth="2.2" strokeLinecap="round" />

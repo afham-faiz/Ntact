@@ -9,7 +9,7 @@
  */
 import { addDays, atLocalTime, type DateKey } from '../domain/dates';
 import { EXERCISES } from '../domain/exercise';
-import type { ExerciseSession, ExerciseSource, Patient, Severity, WeeklyCheckIn } from '../domain/types';
+import type { ExerciseId, ExerciseSession, ExerciseSource, Patient, Severity, WeeklyCheckIn } from '../domain/types';
 
 /** Camera-estimated range, in degrees, at the start and end of each person's history. */
 const RANGE: Record<string, [from: number, to: number]> = {
@@ -43,17 +43,18 @@ export function makeExerciseSession(
   day: DateKey,
   rangeDeg: number,
   source: ExerciseSource = 'seed',
-  options: { reps?: number; hour?: number; minute?: number } = {},
+  options: { reps?: number; hour?: number; minute?: number; exerciseId?: ExerciseId } = {},
 ): ExerciseSession {
-  const target = EXERCISES['open-close'].targetReps;
+  const exerciseId = options.exerciseId ?? 'open-close';
+  const target = EXERCISES[exerciseId].targetReps;
   const reps = options.reps ?? target;
   const rest = 26 + Math.round(chance(patient.id, day, 'rest') * 10);
   const range = Math.max(0, Math.round(rangeDeg));
   return {
-    id: `${source}-ex-${patient.id}-${day}`,
+    id: `${source}-${exerciseId}-${patient.id}-${day}`,
     patientId: patient.id,
     timestamp: atLocalTime(day, options.hour ?? 19, options.minute ?? 5 + Math.round(chance(patient.id, day, 'minute') * 40)),
-    exerciseId: 'open-close',
+    exerciseId,
     reps,
     targetReps: target,
     completed: reps >= target,
@@ -110,7 +111,10 @@ export function seedExerciseSessions(patients: Patient[], anchor: DateKey): Exer
       if (!recent && chance(patient.id, day, 'done') > 0.82) return;
       const progress = days.length > 1 ? index / (days.length - 1) : 1;
       const wobble = (chance(patient.id, day, 'wobble') - 0.5) * 10;
-      sessions.push(makeExerciseSession(patient, day, from + (to - from) * progress + wobble));
+      const range = from + (to - from) * progress + wobble;
+      // Finger slides first, then open and close a few minutes later. A slide bends the finger less than a fist.
+      sessions.push(makeExerciseSession(patient, day, range * 0.58, 'seed', { exerciseId: 'finger-slides', hour: 18, minute: 50 }));
+      sessions.push(makeExerciseSession(patient, day, range));
     });
   }
   return sessions.sort((a, b) => a.timestamp.localeCompare(b.timestamp));

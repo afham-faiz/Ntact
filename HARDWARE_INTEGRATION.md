@@ -12,7 +12,7 @@ Tick each step as you do it and write down anything that differs in the table at
 
 | Item | Detail |
 | --- | --- |
-| The wearable | ESP32 with the fingertip sleeve (FSR, test motor) and wristband motor, powered by USB or power bank |
+| The wearable | ESP32 and DRV2605L driver, the fabric fingertip sleeve (pressure sensor), and the wrist strap carrying the one vibration motor. Powered by USB or power bank |
 | A Windows laptop with Bluetooth | Chrome or Edge, up to date. Bluetooth switched on in Windows settings |
 | The app | https://ntact.vercel.app (once the new build is deployed), or `npm run dev` then http://localhost:5173 on the laptop |
 | A phone with nRF Connect | Free, by Nordic Semiconductor. Used to look at the board directly when something does not work |
@@ -82,18 +82,19 @@ The app shows no pressure reading and no live graph here, on purpose: V3 does no
 
 ## 6. The sensation test (REHAB mode)
 
-Put the sleeve on a finger and rest it the way a patient would.
+The prototype has **one motor, on the wrist strap**. For the test the strap comes off the wrist and is laid flat, and the fingertip being tested rests on the round motor disc. The app shows this position before and during the test.
 
 - [ ] Open **Test** and press **Start test**.
 - [ ] Developer panel should show, in this order: `REHAB` → `REHAB_READY` → `START` → `LEVEL,0,0`, then `LEVEL,1,1`, `LEVEL,2,12`, `LEVEL,3,24` and so on, one every 3 seconds.
 - [ ] The patient screen must show **no level, no countdown and no progress**: only "Tap as soon as you feel a vibration", the big button and Stop. If you ever see a number there during a test, that is a bug: report it.
-- [ ] When you feel the **fingertip** motor, press **I Feel It**.
+- [ ] When you feel the disc buzz under your fingertip, press **I Feel It**.
 - [ ] Developer panel: `FELT` then something like `FELT,3,24,8500`. The motor should stop.
 - [ ] The result screen should say "You felt a vibration at level 3 of 10" (matching the middle number of what the device sent).
 
 Check the stimulus is in the right place:
 
-- [ ] **The test vibration is at the fingertip sleeve, not at the wrist.** If the wrist motor runs during the test, or both do, note it: it changes what the test measures.
+- [ ] **The strap is off the wrist and the fingertip is on the motor disc for the whole test.** How firmly the finger presses changes what is felt, so note how you held it. Decide as a team whether the sleeve stays on or comes off for the test, and tell the app side: the app currently just says "rest the tip of your finger on the round disc".
+- [ ] After the test, put the strap back on the wrist. Touch Assist comes back on when you leave the result screen.
 - [ ] Note the lowest level at which the motor visibly or audibly spins. The handoff warns that low levels (1, 12) may not physically move the motor. Record it.
 
 ## 7. Check the result reached the right patient
@@ -186,7 +187,7 @@ These are the points where the app depends on behaviour the handoff describes bu
 | Clinician record and review flags update | Passing | **Not yet tested** |
 | Real Chrome opens the Bluetooth device list from the Connect button | Checked on the development machine (no device present) | **Not yet tested with a device** |
 | Device advertises `SenseBridge-V2.0` with the documented UUIDs | n/a | **Not yet tested** |
-| Motor actually runs, at the fingertip, at each level | n/a | **Not yet tested** |
+| Motor actually runs, felt at the fingertip resting on the strap, at each level | n/a | **Not yet tested** |
 
 The software tests run against a pretend ESP32 written from the handoff (`tests/fakeBle.ts`). They prove the app does what the handoff asks. They cannot prove the board does.
 
@@ -210,6 +211,7 @@ Fill this in during the hardware session.
 | Reply to `STATUS` after power-on | `STATUS,NORMAL,0` | | |
 | Reply to `FELT` in the first second | `FELT,0,0,<ms>` (assumed) | | |
 | Lowest level the motor physically runs | unknown | | |
-| Test stimulus location | fingertip sleeve only | | |
+| Test position | strap off the wrist, fingertip on the motor disc | | |
+| Sleeve worn during the test? | to be decided | | |
 | Time from pulling power to "Connection lost" | a few seconds | | |
 | | | | |

@@ -14,7 +14,7 @@ export function Ripples({
   tone?: 'light' | 'teal';
   rings?: number;
 }) {
-  const stroke = tone === 'light' ? '#C4F1C9' : '#14A38C';
+  const stroke = tone === 'light' ? '#ECB424' : '#3D63A6';
   return (
     <svg viewBox="0 0 200 200" className={cx('pointer-events-none', className)} fill="none" aria-hidden="true">
       {Array.from({ length: rings }, (_, index) => {

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EXERCISES,
   OpenCloseTracker,
+  RepTracker,
   READY_MS,
   bendDegrees,
   curlOf,
@@ -250,5 +251,63 @@ describe('session summary', () => {
     ];
     expect(new Set(lines).size).toBe(5);
     for (const line of lines) expect(line).not.toMatch(/fail|worse|wrong|bad|declin|stall/i);
+  });
+});
+
+describe('the other exercises', () => {
+  const slides = EXERCISES['finger-slides'];
+  const putty = EXERCISES['putty-squeeze'];
+  const hook = (value: number) => syntheticHand(all(value), { pattern: 'hook' });
+
+  function run(tracker: RepTracker, seconds: number, frameAt: (t: number) => ReturnType<typeof syntheticHand>) {
+    let state = tracker.update(frameAt(0), 0);
+    for (let ms = 33; ms <= seconds * 1000; ms += 33) state = tracker.update(frameAt(ms / 1000), ms);
+    return state;
+  }
+
+  it('reads a finger slide from the end joints: flat is near 0, fingertips drawn back is near 1', () => {
+    expect(poseOf(hook(0)).hookAmount).toBeLessThan(0.08);
+    expect(poseOf(hook(1)).hookAmount).toBeGreaterThan(0.9);
+    // The knuckle barely moves in a slide, so the fist measure stays well short of a fist.
+    expect(poseOf(hook(1)).closure).toBeLessThan(0.75);
+  });
+
+  it('counts finger slides, with its own coaching words', () => {
+    const tracker = new RepTracker(slides, 'index');
+    const state = run(tracker, 1 + 3.4 * 3, (t) => hook(t < 1 ? 0 : demoClosure(t - 1)));
+    expect(state.reps).toBe(3);
+
+    const fresh = new RepTracker(slides, 'index');
+    const waiting = run(fresh, 1.2, () => hook(0));
+    expect(waiting.cue.text).toBe(slides.cues.start);
+    expect(waiting.cue.text).toMatch(/slide/i);
+  });
+
+  it('counts a putty squeeze, which is a smaller movement than a fist', () => {
+    const squeeze = (t: number) => syntheticHand(all((t < 1 ? 0 : demoClosure(t - 1)) * 0.55));
+    expect(run(new RepTracker(putty, 'index'), 1 + 3.4 * 3, squeeze).reps).toBe(3);
+    // The same small movement is not enough to count as opening and closing the hand fully... 
+    expect(run(new OpenCloseTracker('index'), 1 + 3.4 * 3, (t) => syntheticHand(all((t < 1 ? 0 : demoClosure(t - 1)) * 0.3))).reps).toBe(0);
+  });
+
+  it('runs each built-in demonstration to the end', () => {
+    for (const [exercise, reach] of [[slides, 1], [putty, 0.62]] as const) {
+      const source = new DemoHandSource('index', exercise.metric, reach);
+      const tracker = new RepTracker(exercise, 'index');
+      let state = tracker.update(null, 0);
+      for (let ms = 0; ms <= 50_000 && !state.done; ms += 33) state = tracker.update(source.read(ms), ms);
+      expect(state.done, exercise.id).toBe(true);
+      expect(tracker.result().reps, exercise.id).toBe(exercise.targetReps);
+    }
+  });
+
+  it('gives every exercise three steps, five coaching lines and ten repetitions, with no discouraging words', () => {
+    for (const exercise of Object.values(EXERCISES)) {
+      expect(exercise.steps, exercise.id).toHaveLength(3);
+      expect(exercise.targetReps, exercise.id).toBe(10);
+      for (const text of [...Object.values(exercise.cues), ...exercise.steps, exercise.summary]) {
+        expect(text, exercise.id).not.toMatch(/fail|wrong|bad|poor|cannot|weak/i);
+      }
+    }
   });
 });

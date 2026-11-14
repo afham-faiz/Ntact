@@ -110,7 +110,7 @@ function Stat({
       <span className="mt-2 block text-[13px] leading-5 text-ink-soft">{note}</span>
     </>
   );
-  const shell = cx('flex h-full w-full flex-col items-start justify-start px-6 py-5 text-left', selected && 'bg-floor shadow-[inset_0_-3px_0_0_#992335]');
+  const shell = cx('flex h-full w-full flex-col items-start justify-start px-6 py-5 text-left', selected && 'bg-floor shadow-[inset_0_-3px_0_0_#B8413C]');
   return onSelect ? (
     <button type="button" onClick={onSelect} aria-pressed={selected} className={cx(shell, !selected && 'hover:bg-floor/60')}>
       {body}
@@ -165,8 +165,10 @@ export function WorklistPage() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 pb-7 pt-9">
         <div>
-          <h1 className="serif text-[34px] leading-10 text-ink">Worklist</h1>
-          <p className="mt-1 text-[14.5px] leading-6 text-ink-soft">{formatDayLong(today)}. Everyone listed is fictional.</p>
+          <h1 className="serif text-[34px] leading-10 text-ink">Patients</h1>
+          <p className="mt-1 text-[14.5px] leading-6 text-ink-soft">
+            {formatDayLong(today)}. {activity.logged} of {activity.possible} tests done this week. Everyone listed is fictional.
+          </p>
         </div>
         <label className="block">
           <span className="sr-only-live">Search by name, demo ID or finger</span>
@@ -175,37 +177,20 @@ export function WorklistPage() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search name, ID or finger"
-            className="h-11 w-[300px] rounded-[10px] border border-rule bg-paper px-4 text-[14.5px] text-ink placeholder:text-ink-faint hover:border-ink/30"
+            className="glass h-12 w-[300px] rounded-[16px] px-4 text-[14.5px] text-ink placeholder:text-ink-faint"
           />
         </label>
       </div>
 
       {/* Summary: one panel, four cells. The triage cells filter the list. */}
-      <div className="grid overflow-hidden rounded-[14px] border border-rule bg-paper sm:grid-cols-2 xl:grid-cols-5 [&>*]:border-rule sm:[&>*]:border-l sm:[&>*:first-child]:border-l-0">
+      <div className="glass grid overflow-hidden rounded-[22px] sm:grid-cols-3 [&>*]:border-rule sm:[&>*]:border-l sm:[&>*:first-child]:border-l-0">
         <Stat mark={MARK.RED} value={counts.RED} label="Same-day review" note="Wound, skin or pain: look today" selected={filter === 'RED'} onSelect={() => toggle('RED')} />
         <Stat mark={MARK.AMBER} value={counts.AMBER} label="Review soon" note="A rule has been met" selected={filter === 'AMBER'} onSelect={() => toggle('AMBER')} />
         <Stat mark={MARK.GREEN} value={counts.GREEN} label="No current review trigger" note="Can be considered for patient-initiated follow-up" selected={filter === 'GREEN'} onSelect={() => toggle('GREEN')} />
-        <Stat
-          value={counts.missed}
-          label="Missed-test follow-up"
-          note={`${state.triageConfig.missedTests.consecutiveDays}+ days without a completed test`}
-          selected={filter === 'missed'}
-          onSelect={() => toggle('missed')}
-        />
-        <Stat
-          value={
-            <>
-              {activity.logged}
-              <span className="text-[22px] tracking-[-0.02em] text-ink-soft"> / {activity.possible}</span>
-            </>
-          }
-          label="Tests completed, 7 days"
-          note="Patient-days with a completed test"
-        />
       </div>
 
       {/* Patient table */}
-      <div className="mt-6 overflow-hidden rounded-[14px] border border-rule bg-paper">
+      <div className="glass mt-6 overflow-hidden rounded-[22px]">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-4">
           <div className="flex flex-wrap items-baseline gap-x-3">
             <h2 className="text-[17px] font-bold leading-6 tracking-[-0.02em] text-ink">{filterLabel[filter]}</h2>
@@ -213,7 +198,7 @@ export function WorklistPage() {
               {visible.length} of {rows.length}
             </span>
             {filter !== 'all' ? (
-              <button type="button" onClick={() => setFilter('all')} className="text-[14px] font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-4">
+              <button type="button" onClick={() => setFilter('all')} className="text-[14px] font-semibold text-ink underline decoration-mint decoration-2 underline-offset-4">
                 Show everyone
               </button>
             ) : null}
@@ -235,18 +220,16 @@ export function WorklistPage() {
         </div>
 
         <div className="quiet-scroll overflow-x-auto">
-          <table className="w-full min-w-[960px] table-fixed border-collapse">
+          <table className="w-full min-w-[700px] table-fixed border-collapse">
             <caption className="sr-only-live">
-              Patients with provisional review status, affected finger, days since repair, last test, monitoring adherence and review reasons
+              Patients with provisional review status, affected finger, last test and review reasons
             </caption>
             <thead>
-              <tr className="border-y border-rule bg-floor text-left text-[12.5px] font-semibold leading-5 text-ink-soft">
-                <th scope="col" className="w-[19%] py-2.5 pl-6 pr-4">Review status</th>
-                <th scope="col" className="w-[20%] px-4 py-2.5">Patient</th>
-                <th scope="col" className="w-[10%] px-4 py-2.5">Since repair</th>
-                <th scope="col" className="w-[13%] px-4 py-2.5">Last test</th>
-                <th scope="col" className="w-[15%] px-4 py-2.5">Monitoring, 14 days</th>
-                <th scope="col" className="px-4 py-2.5">Review reasons, and who they go to</th>
+              <tr className="border-y border-rule bg-navy-50/70 text-left text-[12.5px] font-semibold leading-5 text-ink-soft">
+                <th scope="col" className="w-[21%] py-2.5 pl-6 pr-4">Status</th>
+                <th scope="col" className="w-[27%] px-4 py-2.5">Patient</th>
+                <th scope="col" className="w-[17%] px-4 py-2.5">Last test</th>
+                <th scope="col" className="px-4 py-2.5">Why, and who it goes to</th>
                 <th scope="col" className="w-12">
                   <span className="sr-only-live">Open record</span>
                 </th>
@@ -255,7 +238,7 @@ export function WorklistPage() {
             <tbody>
               {visible.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center">
+                  <td colSpan={5} className="py-16 text-center">
                     <p className="text-[17px] font-bold text-ink">No one matches that search or filter.</p>
                     <button
                       type="button"
@@ -263,7 +246,7 @@ export function WorklistPage() {
                         setQuery('');
                         setFilter('all');
                       }}
-                      className="mt-2 text-[14.5px] font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-4"
+                      className="mt-2 text-[14.5px] font-semibold text-ink underline decoration-mint decoration-2 underline-offset-4"
                     >
                       Clear search and filters
                     </button>
@@ -289,13 +272,8 @@ export function WorklistPage() {
                       </Link>
                       <span className="block truncate text-[13px] leading-5 text-ink-soft">
                         {injurySite(row.patient)}
-                        <span className="nums">, {row.patient.demoId}</span>
+                        <span className="nums">, week {Math.floor(row.daysSinceRepair / 7)} since repair</span>
                       </span>
-                    </td>
-
-                    <td className="nums whitespace-nowrap px-4 py-4">
-                      <span className="block text-[14.5px] font-semibold leading-6 text-ink">{row.daysSinceRepair} days</span>
-                      <span className="block text-[13px] leading-5 text-ink-soft">week {Math.floor(row.daysSinceRepair / 7)}</span>
                     </td>
 
                     <td className="whitespace-nowrap px-4 py-4">
@@ -309,15 +287,6 @@ export function WorklistPage() {
                       ) : (
                         <span className="text-[14.5px] text-ink-soft">No test yet</span>
                       )}
-                    </td>
-
-                    <td className="nums whitespace-nowrap px-4 py-4">
-                      <span className="block text-[14.5px] font-semibold leading-6 text-ink">
-                        {row.tests14.done}/{row.tests14.total} tests
-                      </span>
-                      <span className="block text-[13px] leading-5 text-ink-soft">
-                        {row.checkIns14.done}/{row.checkIns14.total} check-ins
-                      </span>
                     </td>
 
                     <td className="px-4 py-4">
@@ -353,7 +322,7 @@ export function WorklistPage() {
       <p className="mt-5 max-w-[92ch] text-[13px] leading-5 text-ink-soft">
         Review status comes from provisional rules the team is still discussing; it prompts a look and does not assess
         recovery. Steps are motor command settings from 1 to 10, not calibrated vibration amplitudes.{' '}
-        <Link to="/clinician/rules" className="font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-4">
+        <Link to="/clinician/rules" className="font-semibold text-ink underline decoration-mint decoration-2 underline-offset-4">
           See the provisional rules
         </Link>
       </p>

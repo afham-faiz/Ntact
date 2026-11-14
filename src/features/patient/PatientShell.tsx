@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ChartSpline, ChevronLeft, Hand, House, Pointer, Unplug, Watch } from 'lucide-react';
+import { CaretLeft, ChartLineUp, Fingerprint, GearSix, HandPalm, House, Question } from '@phosphor-icons/react';
+import { Unplug } from 'lucide-react';
 import { useDevice } from '../../app/DeviceContext';
 import { TestSessionProvider, useTestSession } from '../../app/TestSessionContext';
 import { useActivePatient } from '../../app/hooks';
@@ -14,7 +15,7 @@ function useImmersive(): boolean {
   const { phase } = useTestSession();
   const location = useLocation();
   // A guided exercise fills the screen: the camera picture needs the room.
-  if (location.pathname.startsWith('/patient/exercise/')) return true;
+  if (/^\/patient\/exercise\/[^/]+\/live/.test(location.pathname)) return true;
   // While a test is running the chrome goes away: nothing should be easy to hit by accident.
   return location.pathname.startsWith('/patient/test') && isActivePhase(phase) && phase.name !== 'arming';
 }
@@ -57,7 +58,7 @@ function PhoneScreen() {
     <div
       className={cx(
         'relative flex min-h-dvh w-full flex-col sm:h-full sm:min-h-0 sm:overflow-hidden sm:rounded-[46px]',
-        immersive ? 'surface-test' : home ? 'bg-ink' : 'bg-floor',
+        immersive ? 'surface-test' : home ? 'ground-home' : 'ground',
       )}
     >
       <StatusBar dark={immersive || home} />
@@ -106,7 +107,7 @@ export function PatientFrame() {
   return (
     <TestSessionProvider>
       <ScrollMemory />
-      <div className="min-h-dvh bg-canvas sm:grid sm:place-items-center sm:bg-canvas-deep sm:px-6 sm:py-5 lg:grid-cols-[1fr_auto_1fr] lg:gap-14">
+      <div className="ground-wide min-h-dvh sm:grid sm:place-items-center sm:px-6 sm:py-5 lg:grid-cols-[1fr_auto_1fr] lg:gap-14">
         <aside className="hidden max-w-[260px] justify-self-end lg:block">
           <Wordmark />
           <p className="mt-7 text-[22px] font-bold leading-7 tracking-[-0.02em] text-ink">Patient app</p>
@@ -119,7 +120,7 @@ export function PatientFrame() {
           <div className="mt-6 flex flex-col gap-2">
             <Link
               to="/demo"
-              className="inline-flex min-h-11 items-center justify-between rounded-[12px] border border-rule bg-paper px-4 text-[14px] font-semibold text-ink hover:border-ink/40"
+              className="glass inline-flex min-h-11 items-center justify-between rounded-[14px] px-4 text-[14px] font-semibold text-ink hover:bg-white"
             >
               Demo controls
               <span aria-hidden="true" className="text-ink-faint">
@@ -128,9 +129,9 @@ export function PatientFrame() {
             </Link>
             <Link
               to="/clinician"
-              className="inline-flex min-h-11 items-center justify-between rounded-[12px] border border-rule bg-paper px-4 text-[14px] font-semibold text-ink hover:border-ink/40"
+              className="glass inline-flex min-h-11 items-center justify-between rounded-[14px] px-4 text-[14px] font-semibold text-ink hover:bg-white"
             >
-              Clinician portal
+              Clinician dashboard
               <span aria-hidden="true" className="text-ink-faint">
                 ›
               </span>
@@ -139,7 +140,7 @@ export function PatientFrame() {
           <ConceptNote className="mt-6" />
         </aside>
 
-        <div className="relative min-h-dvh w-full sm:h-[min(868px,calc(100dvh-40px))] sm:min-h-0 sm:w-[410px] sm:rounded-[56px] sm:bg-navy-950 sm:p-[10px]">
+        <div className="relative min-h-dvh w-full sm:h-[min(868px,calc(100dvh-40px))] sm:min-h-0 sm:w-[410px] sm:rounded-[56px] sm:bg-navy-950 sm:p-[10px] sm:shadow-frame">
           <PhoneScreen />
         </div>
 
@@ -149,19 +150,26 @@ export function PatientFrame() {
   );
 }
 
+/** Icons are Phosphor (open source, MIT): outline at rest, filled when the tab is open. */
 const TABS = [
   { to: '/patient', label: 'Today', icon: House, end: true },
-  { to: '/patient/test', label: 'Test', icon: Pointer, end: false },
-  { to: '/patient/exercise', label: 'Exercise', icon: Hand, end: false },
-  { to: '/patient/progress', label: 'Recovery', icon: ChartSpline, end: false },
-  { to: '/patient/device', label: 'Device', icon: Watch, end: false },
+  { to: '/patient/test', label: 'Test', icon: Fingerprint, end: false },
+  { to: '/patient/exercise', label: 'Physio', icon: HandPalm, end: false },
+  { to: '/patient/progress', label: 'Recovery', icon: ChartLineUp, end: false },
+  { to: '/patient/settings', label: 'Settings', icon: GearSix, end: false },
 ] as const;
+
+/** Height the floating tab bar takes up at the bottom of a phone screen, including its gap. */
+export const TAB_BAR_SPACE = 'calc(86px+env(safe-area-inset-bottom))';
 
 function BottomNav() {
   return (
-    <nav aria-label="Patient app" className="fixed inset-x-0 bottom-0 z-30 border-t border-rule bg-paper pb-[env(safe-area-inset-bottom)] sm:static sm:z-auto sm:shrink-0 sm:pb-3">
+    <nav
+      aria-label="Patient app"
+      className="glass-bar fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-30 rounded-[28px] px-1.5 sm:static sm:z-auto sm:mx-3 sm:mb-4 sm:mt-1 sm:shrink-0"
+    >
       <ul className="grid grid-cols-5">
-        {TABS.map(({ to, label, end }) => (
+        {TABS.map(({ to, label, end, icon: Icon }) => (
           <li key={to}>
             <NavLink
               to={to}
@@ -171,15 +179,19 @@ function BottomNav() {
                 scrollMemory.delete(to);
                 window.scrollTo(0, 0);
               }}
-              className="relative flex min-h-[58px] items-center justify-center"
+              className="flex min-h-[64px] flex-col items-center justify-center gap-0.5 rounded-[22px]"
             >
               {({ isActive }) => (
                 <>
                   <span
-                    className={cx('absolute inset-x-3.5 top-0 h-[3px]', isActive ? 'bg-wine-600' : 'bg-transparent')}
-                    aria-hidden="true"
-                  />
-                  <span className={cx('text-[14px] leading-5', isActive ? 'font-semibold text-ink' : 'text-ink-soft')}>{label}</span>
+                    className={cx(
+                      'grid h-8 w-[50px] place-items-center rounded-full transition-colors duration-200',
+                      isActive ? 'bg-ink text-mint shadow-button' : 'text-ink-soft',
+                    )}
+                  >
+                    <Icon size={21} weight={isActive ? 'fill' : 'regular'} aria-hidden="true" />
+                  </span>
+                  <span className={cx('text-[11.5px] leading-4', isActive ? 'font-bold text-ink' : 'font-medium text-ink-soft')}>{label}</span>
                 </>
               )}
             </NavLink>
@@ -272,7 +284,7 @@ export function PatientTabs() {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
-        className={cx('flex flex-1 touch-pan-y flex-col overflow-x-clip sm:min-h-0 sm:pb-0', !immersive && 'pb-[calc(58px+env(safe-area-inset-bottom))]')}
+        className={cx('flex flex-1 touch-pan-y flex-col overflow-x-clip sm:min-h-0 sm:pb-0', !immersive && 'pb-[calc(86px+env(safe-area-inset-bottom))]')}
       >
         <div key={location.pathname} ref={pane} className={cx('relative flex flex-1 flex-col sm:min-h-0', lastSlide.current)}>
           <Outlet />
@@ -327,7 +339,7 @@ export function PrototypeTag({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
 }
 
 /** Every screen below the home screen has a back button that returns to where you came from. */
-export function TopBar({ title }: { title: string; back?: string }) {
+export function TopBar({ title, hideHelp = false }: { title: string; back?: string; hideHelp?: boolean }) {
   const navigate = useNavigate();
   const goBack = () => {
     const index = (window.history.state as { idx?: number } | null)?.idx ?? 0;
@@ -340,13 +352,29 @@ export function TopBar({ title }: { title: string; back?: string }) {
         type="button"
         onClick={goBack}
         aria-label="Back"
-        className="-ml-1 grid size-11 shrink-0 place-items-center rounded-full border border-rule bg-paper text-ink hover:border-ink/40"
+        className="glass -ml-1 grid size-11 shrink-0 place-items-center rounded-full text-ink hover:bg-white"
       >
-        <ChevronLeft className="size-[22px]" strokeWidth={2} aria-hidden="true" />
+        <CaretLeft size={20} weight="bold" aria-hidden="true" />
       </button>
       <h1 className="min-w-0 flex-1 truncate text-[20px] font-bold leading-7 tracking-[-0.025em] text-ink">{title}</h1>
-      <PrototypeTag />
+      {hideHelp ? null : <HelpButton />}
     </header>
+  );
+}
+
+/** The same button on every screen: a way to the page that says where everything is. */
+export function HelpButton({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
+  return (
+    <Link
+      to="/patient/help"
+      aria-label="Help: where to find things"
+      className={cx(
+        '-mr-1 grid size-11 shrink-0 place-items-center rounded-full',
+        tone === 'dark' ? 'glass-dark text-white hover:bg-white/[0.14]' : 'glass text-ink hover:bg-white',
+      )}
+    >
+      <Question size={21} weight="bold" aria-hidden="true" />
+    </Link>
   );
 }
 
@@ -368,7 +396,7 @@ export function Screen({
       <div className="relative flex flex-1 flex-col sm:min-h-0">
         <main className={cx('screen-in no-scrollbar flex-1 px-5 sm:min-h-0 sm:overflow-y-auto', footer ? 'pb-24' : 'pb-5', className)}>{children}</main>
         {/* The action floats over the page; only the button itself covers content. */}
-        {footer ? <div className="pointer-events-none fixed inset-x-0 bottom-[calc(58px+env(safe-area-inset-bottom))] z-20 px-5 pb-2 sm:absolute sm:bottom-0 [&>*]:pointer-events-auto">{footer}</div> : null}
+        {footer ? <div className="pointer-events-none fixed inset-x-0 bottom-[calc(86px+env(safe-area-inset-bottom))] z-20 px-5 pb-2 sm:absolute sm:bottom-0 [&>*]:pointer-events-auto">{footer}</div> : null}
       </div>
     </>
   );
@@ -381,7 +409,7 @@ export function DevicePill({ className }: { className?: string }) {
   const connecting = device.connection === 'connecting';
   return (
     <Link
-      to="/patient/device"
+      to="/patient/settings"
       className={cx(
         'inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 text-[13.5px] font-semibold leading-5 shadow-soft',
         connected ? 'bg-paper text-ink' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-400/50',

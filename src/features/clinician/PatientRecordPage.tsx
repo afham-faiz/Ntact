@@ -43,6 +43,15 @@ function Head({ title, note, action }: { title: string; note?: ReactNode; action
   );
 }
 
+/** The record is split three ways so one screen never holds everything at once. */
+type RecordTab = 'overview' | 'results' | 'movement';
+
+const RECORD_TABS: { value: RecordTab; label: string }[] = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'results', label: 'Test results' },
+  { value: 'movement', label: 'Movement and check-ins' },
+];
+
 function Ratio({ label, done, total }: { label: string; done: number; total: number }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-2">
@@ -57,7 +66,7 @@ function Ratio({ label, done, total }: { label: string; done: number; total: num
 function Toggle({ checked, onChange, children }: { checked: boolean; onChange(value: boolean): void; children: ReactNode }) {
   return (
     <label className="flex cursor-pointer items-center gap-2 text-[13.5px] font-medium leading-5 text-ink">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="size-4 accent-[#223641]" />
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="size-4 accent-[#14213D]" />
       {children}
     </label>
   );
@@ -77,6 +86,7 @@ export function PatientRecordPage() {
   const [showTrend, setShowTrend] = useState(false);
   const [modal, setModal] = useState<'review' | 'flag' | 'note' | 'setup' | null>(null);
   const [resultRows, setResultRows] = useState(12);
+  const [tab, setTab] = useState<RecordTab>('overview');
 
   useEffect(() => {
     setActive(null);
@@ -94,7 +104,7 @@ export function PatientRecordPage() {
     return (
       <div className="py-24 text-center">
         <h1 className="serif text-[30px] leading-9 text-ink">No record with that ID.</h1>
-        <Link to="/clinician" className="mt-3 inline-block text-[15px] font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-4">
+        <Link to="/clinician" className="mt-3 inline-block text-[15px] font-semibold text-ink underline decoration-mint decoration-2 underline-offset-4">
           Back to the worklist
         </Link>
       </div>
@@ -135,7 +145,7 @@ export function PatientRecordPage() {
       {/* Header */}
       <div className="pb-6 pt-8">
         <Link to="/clinician" className="text-[14px] font-semibold text-ink-soft hover:text-ink">
-          ‹ Worklist
+          ‹ Patients
         </Link>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
           <div>
@@ -158,8 +168,12 @@ export function PatientRecordPage() {
         </div>
       </div>
 
+      <Segmented<RecordTab> options={RECORD_TABS} value={tab} onChange={setTab} label="Part of the record" className="mb-5" />
+
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-6">
+          {tab === 'overview' ? (
+            <>
           {/* Why this record is flagged */}
           <Panel className={cx('overflow-hidden', level === 'RED' && 'border-wine-300')}>
             <div className={cx('h-1', level === 'RED' ? 'bg-wine-600' : level === 'AMBER' ? 'bg-amber-500' : 'bg-rule')} />
@@ -171,7 +185,7 @@ export function PatientRecordPage() {
                   : 'The exact provisional condition behind each flag, and the recorded data that met it. Provisional rules, not clinical guidelines.'
               }
               action={
-                <Link to="/clinician/rules" className="text-[13.5px] font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-4">
+                <Link to="/clinician/rules" className="text-[13.5px] font-semibold text-ink underline decoration-mint decoration-2 underline-offset-4">
                   View the rules
                 </Link>
               }
@@ -217,7 +231,7 @@ export function PatientRecordPage() {
                         demoStore.reopenFlag(flag.id);
                         toast.show('Flag reopened. Saved locally.');
                       }}
-                      className="font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-4"
+                      className="font-semibold text-ink underline decoration-mint decoration-2 underline-offset-4"
                     >
                       Reopen
                     </button>
@@ -322,7 +336,11 @@ export function PatientRecordPage() {
               )}
             </div>
           </Panel>
+            </>
+          ) : null}
 
+          {tab === 'results' ? (
+            <>
           {/* Daily results */}
           <Panel className="overflow-hidden">
             <Head title="Daily results" note="Every test on record, newest first. “Wearable” means the outcome was reported by the physical device over Bluetooth; everything else is demonstration data." />
@@ -372,7 +390,11 @@ export function PatientRecordPage() {
               </button>
             ) : null}
           </Panel>
+            </>
+          ) : null}
 
+          {tab === 'movement' ? (
+            <>
           {/* Check-ins */}
           <Panel className="overflow-hidden">
             <Head title="Check-ins" note="Patient-reported, newest first. Last 14 on record." />
@@ -394,10 +416,14 @@ export function PatientRecordPage() {
               {checkIns.length === 0 ? <li className="px-6 py-8 text-[14px] text-ink-soft">No check-ins on record yet.</li> : null}
             </ul>
           </Panel>
+            </>
+          ) : null}
         </div>
 
         {/* Right column */}
         <div className="space-y-6">
+          {tab === 'results' ? (
+            <>
           <Panel>
             <Head title="Return window" action={<SimulatedBadge>Illustrative</SimulatedBadge>} />
             <div className="px-6 pb-5 pt-2">
@@ -423,10 +449,10 @@ export function PatientRecordPage() {
                 </p>
               )}
               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[13.5px] font-semibold">
-                <button type="button" onClick={() => setModal('setup')} className="text-ink underline decoration-wine-600 decoration-2 underline-offset-4">
+                <button type="button" onClick={() => setModal('setup')} className="text-ink underline decoration-mint decoration-2 underline-offset-4">
                   {estimate ? 'Edit clinical setup' : 'Add clinical setup'}
                 </button>
-                <Link to="/clinician/rules" className="text-ink underline decoration-wine-600 decoration-2 underline-offset-4">
+                <Link to="/clinician/rules" className="text-ink underline decoration-mint decoration-2 underline-offset-4">
                   Edit assumptions
                 </Link>
               </div>
@@ -457,11 +483,19 @@ export function PatientRecordPage() {
               <WeeklyBars weeks={adherence.weekly} className="mt-2" />
             </div>
           </Panel>
+            </>
+          ) : null}
 
+          {tab === 'movement' ? (
+            <>
           <MovementPanel patient={patient} state={state} today={today} />
 
           <WeeklyPanel patient={patient} state={state} today={today} />
+            </>
+          ) : null}
 
+          {tab === 'results' ? (
+            <>
           <Panel>
             <Head title="Wear time" action={<SimulatedBadge>Simulated placeholder</SimulatedBadge>} />
             <div className="px-6 pb-5 pt-2">
@@ -476,12 +510,16 @@ export function PatientRecordPage() {
               </div>
             </div>
           </Panel>
+            </>
+          ) : null}
 
+          {tab === 'overview' ? (
+            <>
           <Panel>
             <Head
               title="Clinician notes"
               action={
-                <button type="button" onClick={() => setModal('note')} className="text-[13.5px] font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-4">
+                <button type="button" onClick={() => setModal('note')} className="text-[13.5px] font-semibold text-ink underline decoration-mint decoration-2 underline-offset-4">
                   Add note
                 </button>
               }
@@ -534,6 +572,8 @@ export function PatientRecordPage() {
               </dd>
             </dl>
           </Panel>
+            </>
+          ) : null}
         </div>
       </div>
 

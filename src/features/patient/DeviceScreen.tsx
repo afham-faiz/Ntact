@@ -7,7 +7,6 @@ import {
   ButtonLink,
   Card,
   ConceptNote,
-  Explainer,
   IconChip,
   Segmented,
   SimulatedBadge,
@@ -55,7 +54,11 @@ export function DeviceScreen() {
   const calm = connected || connecting;
 
   return (
-    <Screen header={<TopBar title="Device" />}>
+    <Screen header={<TopBar title="Settings" />}>
+      <SectionHeading>
+        <span id="settings-wearable">Your wearable</span>
+      </SectionHeading>
+      <div className="h-2.5" />
       <Card className="overflow-hidden">
         <div className={cx('flex items-center gap-3.5 px-5 py-5', calm ? 'border-b border-rule bg-paper' : 'border-b border-rule bg-amber-50')}>
           <IconChip icon={connected ? Watch : Unplug} tone={connected ? 'teal' : 'amber'} size="lg" round className="bg-paper" />
@@ -88,6 +91,7 @@ export function DeviceScreen() {
           <Row label="Link">{hardware ? 'Bluetooth' : <SimulatedBadge>Simulated</SimulatedBadge>}</Row>
           <Row label="Current mode">{connected ? (device.mode ? MODE_LABEL[device.mode] : 'Checking') : 'Not available'}</Row>
           <Row label="Wearable">Fingertip sleeve and wristband</Row>
+          <Row label="Vibration disc">On the wristband</Row>
         </div>
 
         <div className="px-5 pb-5 pt-2">
@@ -105,7 +109,7 @@ export function DeviceScreen() {
                         <Spinner /> One moment
                       </>
                     ) : (
-                      'Touch Assist on'
+                      'Start Touch Assist'
                     )}
                   </Button>
                 )}
@@ -176,65 +180,35 @@ export function DeviceScreen() {
           <Row label="Surgery date">{formatDateFull(patient.repairDate)}</Row>
           <Link to="/onboarding?step=3" className="flex min-h-12 items-center justify-between gap-3 py-2 text-[14.5px] font-semibold text-ink">
             Change these details
-            <ChevronRight className="size-4 text-wine-600" strokeWidth={2.2} aria-hidden="true" />
+            <ChevronRight className="size-4 text-teal-600" strokeWidth={2.2} aria-hidden="true" />
           </Link>
         </Card>
       </section>
 
-      <section aria-labelledby="device-help" className="mt-6">
+      {hardware && device.connection === 'disconnected' ? (
+        <Button variant="ghost" size="md" block className="mt-4" onClick={device.forgetDevice}>
+          Connect a different wearable
+        </Button>
+      ) : null}
+
+      <section aria-labelledby="settings-more" className="mt-6">
         <SectionHeading>
-          <span id="device-help">If something isn’t working</span>
+          <span id="settings-more">More</span>
         </SectionHeading>
-        <Card className="mt-2.5 divide-y divide-line-soft px-5 py-1">
-          {hardware ? (
-            <Explainer summary="My wearable isn’t in the list">
-              <p>
-                Check it is switched on and within a metre or two, and that Bluetooth is on for this computer. It appears as{' '}
-                {LISTED_NAME}. If a phone or another app is already connected to it, disconnect that first: the wearable accepts
-                one connection at a time.
-              </p>
-            </Explainer>
-          ) : null}
-          <Explainer summary={hardware ? 'The connection keeps dropping' : 'The app says “disconnected”'}>
-            <p>
-              {hardware ? 'Keep the wearable close to this computer and tap Reconnect above.' : 'Tap Reconnect above.'} With the
-              current firmware the wearable goes idle whenever the connection drops, so Touch Assist stays off until you turn it
-              back on. A test that was running is cancelled and is never resumed.
-            </p>
-          </Explainer>
-          <Explainer summary="I can’t feel the feedback at my wrist">
-            <p>
-              Check that Touch Assist is on, that the band sits snugly on your wrist, and that the sleeve’s sensor pad is
-              against the pad of your fingertip. A very light touch gives only an occasional tap.
-            </p>
-          </Explainer>
-          <Explainer summary="The test won’t start">
-            <p>
-              The wearable has to be connected and has to confirm it is ready before a test begins. If it reports a problem,
-              the app tells you and nothing is saved. Try again, or contact your care team if it keeps happening.
-            </p>
-          </Explainer>
-          {hardware && device.connection === 'disconnected' ? (
-            <Explainer summary="I want to connect a different wearable">
-              <p>The app remembers the last wearable it connected to, so Reconnect goes straight back to it.</p>
-              <Button variant="outline" size="md" className="mt-2.5" onClick={device.forgetDevice}>
-                Choose from the list again
-              </Button>
-            </Explainer>
-          ) : null}
+        <Card className="mt-2.5 divide-y divide-line-soft px-5">
+          {[
+            { to: '/patient/help', label: 'Help: where things are, and what to do if something isn’t working' },
+            { to: '/onboarding', label: 'Replay the introduction' },
+            { to: '/clinician', label: 'Open the clinician dashboard' },
+            { to: '/demo', label: 'Demo controls' },
+          ].map((link) => (
+            <Link key={link.to} to={link.to} className="flex min-h-12 items-center justify-between gap-3 py-2.5 text-[14.5px] font-semibold text-ink">
+              {link.label}
+              <ChevronRight className="size-4 shrink-0 text-ink-faint" strokeWidth={2.2} aria-hidden="true" />
+            </Link>
+          ))}
         </Card>
       </section>
-
-      <div className="mt-6 flex flex-col gap-2">
-        <Link to="/onboarding" className="flex min-h-12 items-center justify-between rounded-[12px] bg-paper px-4 text-[14.5px] font-semibold text-ink">
-          Replay the introduction
-          <ChevronRight className="size-4 text-ink-faint" strokeWidth={2.2} aria-hidden="true" />
-        </Link>
-        <Link to="/demo" className="flex min-h-12 items-center justify-between rounded-[12px] bg-paper px-4 text-[14.5px] font-semibold text-ink">
-          Demo controls and developer panel
-          <ChevronRight className="size-4 text-ink-faint" strokeWidth={2.2} aria-hidden="true" />
-        </Link>
-      </div>
 
       <ConceptNote className="mt-5 text-center" />
     </Screen>

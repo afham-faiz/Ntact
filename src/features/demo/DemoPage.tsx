@@ -35,7 +35,7 @@ function Group({ title, note, children }: { title: string; note?: ReactNode; chi
 function Check({ checked, onChange, children }: { checked: boolean; onChange(value: boolean): void; children: ReactNode }) {
   return (
     <label className="flex cursor-pointer items-start gap-2.5 py-1.5 text-[14px] leading-[22px] text-ink">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-1 size-4 accent-[#223641]" />
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-1 size-4 accent-[#14213D]" />
       <span>{children}</span>
     </label>
   );
@@ -67,8 +67,8 @@ export function DemoPage() {
   const linkProblem = hardware ? (device.problem ?? blocked) : null;
 
   return (
-    <div className="min-h-dvh bg-floor text-ink">
-      <header className="on-dark bg-ink text-white">
+    <div className="ground-wide min-h-dvh text-ink">
+      <header className="on-dark surface-test text-white">
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-baseline justify-between gap-4 px-6 py-5 lg:px-10">
           <span className="text-[19px] font-bold tracking-[-0.03em]">Ntact</span>
           <span className="text-[13.5px] text-mist">Demo controls. Not part of the product.</span>
@@ -78,7 +78,7 @@ export function DemoPage() {
       <main className="mx-auto max-w-[1240px] px-6 pb-16 lg:px-10">
         <div className="pb-8 pt-10">
           <h1 className="serif max-w-[22ch] text-[40px] leading-[1.1] text-ink">
-            A working prototype of the <span className="underline decoration-wine-600 decoration-[3px] underline-offset-[10px] [text-decoration-skip-ink:none]">patient app</span> and clinician portal.
+            A working prototype of the <span className="underline decoration-mint decoration-[3px] underline-offset-[10px] [text-decoration-skip-ink:none]">patient app</span> and clinician portal.
           </h1>
           <p className="mt-5 max-w-[70ch] text-[16px] leading-7 text-ink-soft">
             Ntact uses wearable feedback to help people with fingertip sensory loss perceive touch and track changes in
@@ -136,10 +136,10 @@ export function DemoPage() {
           <ol className="divide-y divide-rule">
             {SCENES.map((scene, index) => (
               <li key={scene.to} className="grid items-baseline gap-x-8 gap-y-1 py-4 md:grid-cols-[40px_220px_minmax(0,1fr)_auto]">
-                <span className="serif nums text-[24px] leading-8 text-wine-600">{index + 1}</span>
+                <span className="serif nums text-[24px] leading-8 text-teal-600">{index + 1}</span>
                 <span className="text-[16px] font-bold leading-6 text-ink">{scene.title}</span>
                 <span className="text-[14.5px] leading-6 text-ink-soft">{scene.text}</span>
-                <Link to={scene.to} className="text-[14.5px] font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-4">
+                <Link to={scene.to} className="text-[14.5px] font-semibold text-ink underline decoration-mint decoration-2 underline-offset-4">
                   Open
                 </Link>
               </li>
@@ -215,7 +215,7 @@ export function DemoPage() {
                     </option>
                   ))}
                 </select>
-                <span className={cx('text-[14px] font-semibold', level === 'RED' ? 'text-wine-600' : level === 'AMBER' ? 'text-amber-700' : 'text-ink-soft')}>
+                <span className={cx('text-[14px] font-semibold', level === 'RED' ? 'text-teal-600' : level === 'AMBER' ? 'text-amber-700' : 'text-ink-soft')}>
                   {LEVEL_LABEL[level]}
                 </span>
               </div>

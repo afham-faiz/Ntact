@@ -20,19 +20,19 @@ interface ButtonStyle {
 const VARIANT: Record<Variant, string> = {
   primary: 'btn-primary text-white shadow-button',
   navy: 'btn-navy text-white',
-  white: 'bg-paper text-ink shadow-soft hover:bg-navy-50',
+  white: 'glass text-ink hover:bg-white',
   soft: 'bg-ink/[0.06] text-ink hover:bg-ink/10',
-  outline: 'border border-ink/30 bg-paper text-ink hover:border-ink',
+  outline: 'border border-ink/15 bg-white/70 text-ink shadow-soft backdrop-blur-md hover:border-ink/45 hover:bg-white',
   ghost: 'bg-transparent text-ink hover:bg-ink/[0.06]',
-  glass: 'border border-mist/60 bg-transparent text-white hover:bg-white/[0.06]',
+  glass: 'glass-dark text-white hover:bg-white/[0.14]',
   danger: 'bg-wine-600 text-white hover:bg-wine-800',
 };
 
 // Patient sizes (md and up) are pills and meet the 44 px touch minimum. sm and xs are for the desktop portal.
 const SIZE: Record<Size, string> = {
-  xl: 'min-h-16 rounded-[14px] px-7 text-[18px]',
-  lg: 'min-h-14 rounded-[14px] px-6 text-[16.5px]',
-  md: 'min-h-12 rounded-[12px] px-5 text-[15px]',
+  xl: 'min-h-16 rounded-[20px] px-7 text-[18px]',
+  lg: 'min-h-14 rounded-[18px] px-6 text-[16.5px]',
+  md: 'min-h-12 rounded-[15px] px-5 text-[15px]',
   sm: 'min-h-10 rounded-[10px] px-3.5 text-[14px]',
   xs: 'min-h-8 rounded-[8px] px-2.5 text-[13px]',
 };
@@ -65,14 +65,14 @@ export function ButtonLink({ variant, size, block, className, ...rest }: ButtonL
 
 // ---------- Surfaces ----------
 
-/** White card for the patient app: large radius, soft lift. */
+/** Frosted-glass card for the patient app: large radius, soft lift over the lit ground. */
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx('rounded-[16px] border border-rule bg-paper', className)}>{children}</div>;
+  return <div className={cx('glass rounded-[22px]', className)}>{children}</div>;
 }
 
-/** Panel for the clinician portal: tighter radius, hairline edge, barely any lift. */
+/** Frosted-glass panel for the clinician dashboard. */
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cx('rounded-[14px] border border-rule bg-paper', className)}>{children}</section>;
+  return <section className={cx('glass rounded-[20px]', className)}>{children}</section>;
 }
 
 // ---------- Tones ----------
@@ -295,7 +295,7 @@ export function Explainer({
       >
         <svg
           viewBox="0 0 16 16"
-          className="size-3.5 shrink-0 text-wine-600 transition-transform duration-150 group-open:rotate-90"
+          className="size-3.5 shrink-0 text-teal-600 transition-transform duration-150 group-open:rotate-90"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"

@@ -3,18 +3,22 @@
  * pressure sensor on the affected fingertip, a band at the wrist, and the path
  * the signal takes between them.
  *
- * It is a concept drawing, not a schematic. It shows what V3 Normal mode does
- * (pressure at the fingertip, feedback at the wrist) and nothing about where the
- * Rehab test stimulus sits, which the hardware team has not confirmed.
+ * It is a concept drawing, not a schematic, and it has two poses:
+ *
+ *   assist  what V3 Normal mode does: pressure at the fingertip, feedback from
+ *           the one motor on the wristband.
+ *   test    how the sensation test is done with the same motor: the band is off
+ *           the wrist, lying flat, and the fingertip rests on its disc.
+ *
+ * The test pose is static on purpose. Nothing in it moves with the device, so it
+ * cannot hint at when or how strongly the motor is running.
  */
 import { usePrefersReducedMotion } from '../app/hooks';
 import type { Finger, Hand } from '../domain/types';
 import { C } from './palette';
 
-const INK = C.ink;
 const SEA = C.teal600;
 const MINT = C.mint;
-const SKIN = C.paper;
 
 interface FingerShape {
   /** Base centre, where the finger meets the palm. */
@@ -54,11 +58,20 @@ export function HandIllustration({
   active,
   showBand = true,
   showPath = true,
+  mode = 'assist',
+  tone = 'light',
+  crop = false,
   className,
   title,
 }: {
   hand: Hand;
   finger: Finger;
+  /** 'test' shows the band off the wrist with the fingertip on its disc. */
+  mode?: 'assist' | 'test';
+  /** 'dark' for the navy test screen. */
+  tone?: 'light' | 'dark';
+  /** Leave the forearm out, for a small picture where the fingers matter. */
+  crop?: boolean;
   /** Animate a pulse along the path. Purely illustrative; it is not driven by the device. */
   active: boolean;
   showBand?: boolean;
@@ -67,8 +80,15 @@ export function HandIllustration({
   title: string;
 }) {
   const reducedMotion = usePrefersReducedMotion();
-  // The base drawing is a left hand. A right hand is its mirror image.
-  const mirror = hand === 'right';
+  const dark = tone === 'dark';
+  const INK = dark ? '#FFFFFF' : C.ink;
+  const SKIN = dark ? '#26365A' : C.paper;
+  const STRAP = dark ? '#0A1122' : C.ink;
+  const testing = mode === 'test';
+  // The base drawing is a left hand seen from the palm; a right hand is its mirror image.
+  // In the test pose the hand is palm down on the band, so it is seen from the back,
+  // where the same outline is a right hand. The mirroring flips to match.
+  const mirror = testing ? hand === 'left' : hand === 'right';
   const mx = (x: number) => (mirror ? MIRROR_AXIS - x : x);
   const sign = mirror ? -1 : 1;
 
@@ -93,12 +113,42 @@ export function HandIllustration({
 
   return (
     <svg
-      viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.width} ${VIEW.height}`}
+      viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.width} ${crop ? 306 : VIEW.height}`}
       className={className}
       role="img"
       aria-label={title}
       fill="none"
     >
+      {/* Test pose: the band lies flat behind the fingers, its disc under the tested fingertip */}
+      {testing
+        ? (() => {
+            const length = 262;
+            const left = Math.min(Math.max(pad.x - length / 2, VIEW.x + 8), VIEW.x + VIEW.width - length - 8);
+            const top = pad.y - 25;
+            return (
+              <g>
+                <rect x={left} y={top} width={length} height={50} rx={15} fill={STRAP} stroke={dark ? 'rgba(255,255,255,0.3)' : 'none'} strokeWidth={1.2} />
+                <path
+                  d={`M ${left + 16} ${top + 8} H ${left + length - 16} M ${left + 16} ${top + 42} H ${left + length - 16}`}
+                  stroke="#FFFFFF"
+                  strokeOpacity={0.2}
+                  strokeWidth={1.3}
+                  strokeDasharray="5 5"
+                  strokeLinecap="round"
+                />
+                <circle cx={pad.x} cy={pad.y} r={20} fill={MINT} />
+                <circle cx={pad.x} cy={pad.y} r={20} stroke={STRAP} strokeOpacity={0.3} strokeWidth={1.5} />
+                <g stroke={MINT} strokeWidth={2.4} strokeLinecap="round">
+                  <path d={`M ${pad.x - 30} ${pad.y - 9} a 11 11 0 0 0 0 18`} />
+                  <path d={`M ${pad.x - 40} ${pad.y - 14} a 17 17 0 0 0 0 28`} opacity={0.55} />
+                  <path d={`M ${pad.x + 30} ${pad.y - 9} a 11 11 0 0 1 0 18`} />
+                  <path d={`M ${pad.x + 40} ${pad.y - 14} a 17 17 0 0 1 0 28`} opacity={0.55} />
+                </g>
+              </g>
+            );
+          })()
+        : null}
+
       {/* Forearm, open at the bottom */}
       <path
         d={`M ${mx(116)} 372 V 250 H ${mx(188)} V 372`}
@@ -148,7 +198,9 @@ export function HandIllustration({
       })}
       <rect x={Math.min(mx(117.6), mx(186.4))} y={246} width={68.8} height={30} fill={SKIN} />
 
-      {/* Palm creases, kept faint */}
+      {/* Palm creases, kept faint. Only when the palm is what we are looking at. */}
+      {testing ? null : (
+      <>
       <path
         d={`M ${mx(112)} 214 C ${mx(134)} 196, ${mx(166)} 196, ${mx(196)} 206`}
         stroke={INK}
@@ -163,9 +215,20 @@ export function HandIllustration({
         strokeWidth={1.4}
         strokeLinecap="round"
       />
+      </>
+      )}
 
-      {/* Sleeve on the affected fingertip, with the sensor pad */}
-      {(() => {
+      {/* Knuckles, for the back of the hand in the test pose */}
+      {testing ? (
+        <g stroke={INK} strokeOpacity={0.2} strokeWidth={1.5} strokeLinecap="round">
+          {(['index', 'middle', 'ring', 'little'] as Finger[]).map((name) => (
+            <path key={name} d={`M ${mx(FINGERS[name].x) - 6} ${FINGERS[name].y + 12} h 12`} />
+          ))}
+        </g>
+      ) : null}
+
+      {/* Sleeve on the affected fingertip, with the sensor pad. Not drawn in the test pose. */}
+      {testing ? null : (() => {
         const { shape, rotation } = fingerRect(finger);
         const half = shape.width / 2 + 1.6;
         const centre = mx(shape.x);
@@ -187,10 +250,25 @@ export function HandIllustration({
         );
       })()}
 
+      {/* Where the band normally sits, left empty in the test pose */}
+      {testing ? (
+        <rect
+          x={mx(106) - (mirror ? 92 : 0)}
+          y={291}
+          width={92}
+          height={28}
+          rx={9}
+          stroke={INK}
+          strokeOpacity={0.4}
+          strokeWidth={1.6}
+          strokeDasharray="5 5"
+        />
+      ) : null}
+
       {/* Wristband with the vibration site */}
-      {showBand ? (
+      {showBand && !testing ? (
         <g>
-          <rect x={mx(106) - (mirror ? 92 : 0)} y={291} width={92} height={28} rx={9} fill={INK} />
+          <rect x={mx(106) - (mirror ? 92 : 0)} y={291} width={92} height={28} rx={9} fill={STRAP} />
           <circle cx={motor.x} cy={motor.y} r={6} fill={MINT} />
           {active ? (
             <g stroke={MINT} strokeWidth={1.5} strokeLinecap="round" opacity={0.85}>
@@ -202,7 +280,7 @@ export function HandIllustration({
       ) : null}
 
       {/* The bridge: where the signal goes */}
-      {showPath && showBand ? (
+      {showPath && showBand && !testing ? (
         <g>
           <path d={pathD} stroke={C.teal500} strokeWidth={2.2} strokeLinecap="round" strokeDasharray="1.5 7" opacity={active ? 1 : 0.4} />
           {active && !reducedMotion ? (

@@ -1,19 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, X } from 'lucide-react';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { CaretRight, CheckCircle, LockSimple, X } from '@phosphor-icons/react';
 import { useActivePatient, useDemoState, useToday } from '../../app/hooks';
 import { Button, ButtonLink, Card, Explainer, Spinner, cx } from '../../components/ui';
 import { demoStore } from '../../demo/store';
 import { dateKeyOf, lastDays, relativeDay } from '../../domain/dates';
 import {
   EXERCISES,
+  EXERCISE_ORDER,
   FINGERS,
-  OpenCloseTracker,
-  UPCOMING_PHASES,
+  RepTracker,
+  TREND_EXERCISE,
+  isExerciseId,
   patientSummaryLine,
+  physioToday,
   previousMeasured,
   sessionsForPatient,
+  trendSessions,
+  unlockedExercises,
   type CuePhase,
+  type ExerciseDefinition,
   type FingerValues,
   type SessionResult,
 } from '../../domain/exercise';
@@ -23,8 +29,6 @@ import { DemoHandSource } from '../../exercise/demoHand';
 import { drawHand } from '../../exercise/drawHand';
 import { Screen, SectionHeading, TopBar } from './PatientShell';
 
-const EXERCISE = EXERCISES['open-close'];
-
 const FINGER_LABEL: Record<Finger, string> = {
   thumb: 'Thumb',
   index: 'Index',
@@ -33,16 +37,13 @@ const FINGER_LABEL: Record<Finger, string> = {
   little: 'Little',
 };
 
-/** Exercises this patient may do. Only a clinician changes this, from the record. */
-export function unlockedExercises(plans: Record<string, ExerciseId[]> | undefined, patientId: string): ExerciseId[] {
-  return plans?.[patientId] ?? ['open-close'];
-}
+const fingerWords = (finger: Finger) => (finger === 'thumb' ? 'thumb' : `${finger} finger`);
 
-// ---------- Overview ----------
+// ---------- Physio: the list ----------
 
 /** A small trend line of the camera-estimated range. Shape only: no axis, no promise of precision. */
 function RangeTrend({ sessions }: { sessions: ExerciseSession[] }) {
-  const values = sessions.filter((session) => session.rangeDeg !== null).slice(-14);
+  const values = trendSessions(sessions).slice(-14);
   if (values.length < 2) return null;
   const numbers = values.map((session) => session.rangeDeg as number);
   const low = Math.min(...numbers) - 8;
@@ -57,13 +58,13 @@ function RangeTrend({ sessions }: { sessions: ExerciseSession[] }) {
     <svg viewBox={`0 0 ${width} ${height}`} className="mt-3 block h-16 w-full" role="img" aria-label="Movement over your recent sessions">
       <defs>
         <linearGradient id="range-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#14a38c" stopOpacity="0.22" />
-          <stop offset="1" stopColor="#14a38c" stopOpacity="0" />
+          <stop offset="0" stopColor="#3D63A6" stopOpacity="0.22" />
+          <stop offset="1" stopColor="#3D63A6" stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={area} fill="url(#range-fill)" />
-      <path d={path} fill="none" stroke="#0b8272" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={x(numbers.length - 1)} cy={y(numbers[numbers.length - 1])} r="4" fill="#0b8272" stroke="#ffffff" strokeWidth="2" />
+      <path d={path} fill="none" stroke="#2E4A7D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={x(numbers.length - 1)} cy={y(numbers[numbers.length - 1])} r="4" fill="#2E4A7D" stroke="#ffffff" strokeWidth="2" />
     </svg>
   );
 }
@@ -73,64 +74,69 @@ export function ExerciseHome() {
   const state = useDemoState();
   const today = useToday();
   const sessions = sessionsForPatient(state.exerciseSessions ?? [], patient.id);
-  const unlocked = unlockedExercises(state.exercisePlans, patient.id).includes('open-close');
-  const doneToday = sessions.filter((session) => session.reps > 0 && dateKeyOf(session.timestamp) === today);
+  const { unlocked, done } = physioToday(state.exerciseSessions ?? [], state.exercisePlans, patient.id, today);
   const week = lastDays(today, 7);
   const daysDone = week.filter((day) => sessions.some((session) => session.reps > 0 && dateKeyOf(session.timestamp) === day)).length;
-  const latest = previousMeasured(sessions);
-  const support = cameraSupport();
-  const fingerName = patient.finger === 'thumb' ? 'thumb' : `${patient.finger} finger`;
+  const latest = previousMeasured(sessions, undefined, TREND_EXERCISE);
 
   return (
-    <Screen header={<TopBar title="Exercises" />}>
+    <Screen header={<TopBar title="Physio" />}>
       <p className="-mt-1 text-[15.5px] leading-6 text-ink-soft">
-        Guided by your camera. It follows your fingers and counts for you.
+        {unlocked.length === 0
+          ? 'Your therapist hasn’t unlocked any exercises yet.'
+          : done.length === unlocked.length
+            ? 'All done for today. Your camera followed your fingers and counted for you.'
+            : `${done.length} of ${unlocked.length} done today. Your camera follows your fingers and counts for you.`}
       </p>
 
-      <Card className="mt-4 overflow-hidden">
-        <div className="border-b border-rule px-5 py-5">
-          <p className="text-[13px] font-semibold leading-5 text-ink-soft">Phase {EXERCISE.phase}</p>
-          <h2 className="display mt-0.5 text-[24px] leading-8 text-ink">{EXERCISE.title}</h2>
-          <p className="mt-1 text-[15px] leading-6 text-ink-soft">{EXERCISE.summary}</p>
-          <p className="mt-3 text-[14px] font-semibold leading-5 text-ink">
-            {EXERCISE.targetReps} repetitions · about a minute
-            {doneToday.length > 0 ? <span className="ml-2 font-bold text-teal-700">Done today</span> : null}
-          </p>
-        </div>
-        <ol className="space-y-3 px-5 py-4">
-          {EXERCISE.steps.map((step, index) => (
-            <li key={step} className="flex gap-3.5 text-[15px] leading-[22px] text-ink">
-              <span className="nums w-4 shrink-0 font-bold text-wine-600">{index + 1}</span>
-              <span>{step}</span>
-            </li>
-          ))}
-        </ol>
-        <div className="px-5 pb-5">
-          {!unlocked ? (
-            <p className="flex items-start gap-2.5 rounded-[12px] bg-floor px-4 py-3 text-[14.5px] leading-6 text-ink" role="status">
-              <Lock className="mt-1 size-4 shrink-0" strokeWidth={2} aria-hidden="true" />
-              <span>Your therapist hasn’t unlocked this exercise yet. They will switch it on when you are ready for it.</span>
-            </p>
-          ) : (
+      <ul className="mt-4 space-y-3">
+        {EXERCISE_ORDER.map((id, index) => {
+          const exercise = EXERCISES[id];
+          const open = unlocked.includes(id);
+          const isDone = done.includes(id);
+          const next = open && !isDone && unlocked.find((item) => !done.includes(item)) === id;
+          const body = (
             <>
-              {support.supported ? (
-                <ButtonLink to="/patient/exercise/open-close" variant="primary" size="lg" block>
-                  {doneToday.length > 0 ? 'Do it again' : 'Start with camera'}
-                </ButtonLink>
-              ) : (
-                <p className="rounded-[12px] bg-amber-50 px-4 py-3 text-[14.5px] leading-6 text-amber-700" role="status">
-                  {support.reason === 'insecure'
-                    ? 'The camera only works on the https:// address of Ntact, or on localhost.'
-                    : 'This browser can’t use the camera from a web page.'}
-                </p>
-              )}
-              <ButtonLink to="/patient/exercise/open-close?mode=demo" variant="ghost" size="md" block className="mt-1.5">
-                Watch a demonstration instead
-              </ButtonLink>
+              <span
+                className={cx(
+                  'nums grid size-12 shrink-0 place-items-center rounded-full text-[17px] font-bold',
+                  isDone ? 'bg-green-50 text-green-700' : !open ? 'bg-navy-50 text-ink-faint' : next ? 'bg-mint text-ink' : 'bg-navy-50 text-ink',
+                )}
+              >
+                {isDone ? <CheckCircle size={26} weight="fill" aria-hidden="true" /> : !open ? <LockSimple size={21} aria-hidden="true" /> : index + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[17px] font-bold leading-6 tracking-[-0.015em]">{exercise.title}</span>
+                <span className={cx('block text-[14px] leading-5', next ? 'text-mist' : 'text-ink-soft')}>
+                  {!open ? 'Your therapist unlocks this at a later stage.' : isDone ? `Done today. ${exercise.targetReps} repetitions.` : exercise.summary}
+                </span>
+              </span>
             </>
-          )}
-        </div>
-      </Card>
+          );
+          return (
+            <li key={id}>
+              {open ? (
+                <Link
+                  to={`/patient/exercise/${id}`}
+                  className={cx(
+                    'flex min-h-[88px] items-center gap-4 rounded-[24px] px-4 py-3.5 transition-transform duration-150 active:scale-[0.985]',
+                    next ? 'btn-primary text-white shadow-button' : 'glass text-ink',
+                  )}
+                >
+                  {body}
+                  {next ? (
+                    <span className="shrink-0 rounded-full bg-mint px-4 py-2 text-[14.5px] font-bold leading-5 text-ink">Start</span>
+                  ) : (
+                    <CaretRight size={18} weight="bold" className="shrink-0 text-ink-soft" aria-hidden="true" />
+                  )}
+                </Link>
+              ) : (
+                <div className="flex min-h-[88px] items-center gap-4 rounded-[24px] border border-dashed border-ink/20 px-4 py-3.5 text-ink-soft">{body}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
 
       <section aria-labelledby="exercise-movement" className="mt-6">
         <SectionHeading>
@@ -139,7 +145,7 @@ export function ExerciseHome() {
         <Card className="mt-2.5 px-5 py-4">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[13.5px] leading-5 text-ink-soft">How far your {fingerName} moved</p>
+              <p className="text-[13.5px] leading-5 text-ink-soft">How far your {fingerWords(patient.finger)} moved</p>
               <p className="display nums mt-0.5 text-[30px] leading-9 text-ink">
                 {latest?.rangeDeg != null ? `about ${latest.rangeDeg}°` : 'No sessions yet'}
               </p>
@@ -151,44 +157,17 @@ export function ExerciseHome() {
           </div>
           <RangeTrend sessions={sessions} />
           <p className="mt-2 text-[13px] leading-5 text-ink-soft">
-            {latest ? `Last session ${relativeDay(dateKeyOf(latest.timestamp), today).toLowerCase()}. ` : ''}
+            {latest ? `From “Open and close”, ${relativeDay(dateKeyOf(latest.timestamp), today).toLowerCase()}. ` : ''}
             An estimate from the camera: good for seeing the trend, not a precise measurement.
           </p>
         </Card>
       </section>
 
-      <section aria-labelledby="exercise-later" className="mt-6">
-        <SectionHeading>
-          <span id="exercise-later">Coming later</span>
-        </SectionHeading>
-        <Card className="mt-2.5 divide-y divide-line-soft px-5">
-          {UPCOMING_PHASES.map((item) => (
-            <div key={item.phase} className="flex items-center justify-between gap-4 py-3.5">
-              <span>
-                <span className="block text-[15px] font-bold leading-5 text-ink">{item.title}</span>
-                <span className="block text-[13.5px] leading-5 text-ink-soft">{item.note}</span>
-              </span>
-              <Lock className="size-4 shrink-0 text-ink-faint" strokeWidth={2} aria-hidden="true" />
-            </div>
-          ))}
-        </Card>
-        <p className="mt-2.5 text-[13.5px] leading-5 text-ink-soft">
-          Your therapist chooses which exercises you do and unlocks each phase. The app never decides that for you.
-        </p>
-      </section>
-
-      <Card className="mt-6 divide-y divide-line-soft px-5 py-1">
+      <Card className="mt-5 divide-y divide-line-soft px-5 py-1">
         <Explainer summary="What happens to the video?">
           <p>
             Nothing leaves this device. The picture goes from your camera to hand tracking that runs inside this page, and is
             never recorded, saved or sent anywhere. Only the result is kept: how many repetitions, and the estimated movement.
-          </p>
-        </Explainer>
-        <Explainer summary="How accurate is it?">
-          <p>
-            A camera sees your hand from one side, so the angles are estimates and can be out by ten or twenty degrees, more if
-            your hand is turned. They are for guiding you and showing the trend over weeks. Your therapist’s own measurements
-            are the ones that count.
           </p>
         </Explainer>
         <Explainer summary="It hurts, or my finger won’t go that far">
@@ -198,6 +177,62 @@ export function ExerciseHome() {
           </p>
         </Explainer>
       </Card>
+    </Screen>
+  );
+}
+
+// ---------- Get ready ----------
+
+/** One exercise: what to do, then start. Kept short so the next tap is the camera. */
+export function ExerciseReadyScreen() {
+  const { exerciseId } = useParams();
+  const patient = useActivePatient();
+  const state = useDemoState();
+  const support = cameraSupport();
+
+  if (!isExerciseId(exerciseId)) return <Navigate to="/patient/exercise" replace />;
+  const exercise = EXERCISES[exerciseId];
+  if (!unlockedExercises(state.exercisePlans, patient.id).includes(exerciseId)) return <Navigate to="/patient/exercise" replace />;
+
+  return (
+    <Screen
+      header={<TopBar title={exercise.title} />}
+      footer={
+        support.supported ? (
+          <ButtonLink to={`/patient/exercise/${exerciseId}/live`} variant="primary" size="lg" block>
+            Start with camera
+          </ButtonLink>
+        ) : undefined
+      }
+    >
+      <p className="-mt-1 text-[15.5px] leading-6 text-ink-soft">{exercise.targetReps} repetitions. About a minute.</p>
+
+      <Card className="mt-4 p-5">
+        <ol className="space-y-3.5">
+          {exercise.steps.map((step, index) => (
+            <li key={step} className="flex gap-3.5 text-[15.5px] leading-[23px] text-ink">
+              <span className="nums w-4 shrink-0 font-bold text-teal-600">{index + 1}</span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+      </Card>
+
+      {!support.supported ? (
+        <p className="mt-4 rounded-[16px] bg-amber-50 px-4 py-3 text-[14.5px] leading-6 text-amber-700" role="status">
+          {support.reason === 'insecure'
+            ? 'The camera only works on the https:// address of Ntact, or on localhost.'
+            : 'This browser can’t use the camera from a web page.'}
+        </p>
+      ) : (
+        <p className="mt-4 px-1 text-[14px] leading-6 text-ink-soft">
+          Your browser will ask to use the camera. The video stays on this device and is never recorded.
+        </p>
+      )}
+
+      <ButtonLink to={`/patient/exercise/${exerciseId}/live?mode=demo`} variant="ghost" size="md" className="-ml-4 mt-1">
+        Watch a demonstration instead
+      </ButtonLink>
     </Screen>
   );
 }
@@ -218,8 +253,8 @@ interface LiveView {
   reps: number;
   cue: string;
   cuePhase: CuePhase;
-  closure: number;
-  curl: FingerValues;
+  amount: number;
+  fingers: FingerValues;
   handVisible: boolean;
   ready: boolean;
 }
@@ -228,36 +263,36 @@ const EMPTY_VIEW: LiveView = {
   reps: 0,
   cue: 'Hold your hand up to the camera',
   cuePhase: 'find-hand',
-  closure: 0,
-  curl: { thumb: 0, index: 0, middle: 0, ring: 0, little: 0 },
+  amount: 0,
+  fingers: { thumb: 0, index: 0, middle: 0, ring: 0, little: 0 },
   handVisible: false,
   ready: false,
 };
 
 function sameView(a: LiveView, b: LiveView): boolean {
   if (a.reps !== b.reps || a.cue !== b.cue || a.handVisible !== b.handVisible || a.ready !== b.ready) return false;
-  if (Math.abs(a.closure - b.closure) > 0.012) return false;
-  return FINGERS.every((finger) => Math.abs(a.curl[finger] - b.curl[finger]) <= 0.02);
+  if (Math.abs(a.amount - b.amount) > 0.012) return false;
+  return FINGERS.every((finger) => Math.abs(a.fingers[finger] - b.fingers[finger]) <= 0.02);
 }
 
-/** How closed the hand is, as an arc. Fills as the fist forms, empties as it opens. */
-function ClosureRing({ closure, reps, target }: { closure: number; reps: number; target: number }) {
+/** How far into the movement the hand is, as an arc. Fills on the way in, empties on the way out. */
+function AmountRing({ amount, reps, target }: { amount: number; reps: number; target: number }) {
   const radius = 34;
   const circumference = 2 * Math.PI * radius;
   return (
     <div className="relative grid size-[88px] place-items-center">
       <svg viewBox="0 0 80 80" className="absolute inset-0 size-full -rotate-90" aria-hidden="true">
-        <circle cx="40" cy="40" r={radius} fill="rgb(17 28 34 / 0.55)" stroke="rgb(255 255 255 / 0.16)" strokeWidth="5" />
+        <circle cx="40" cy="40" r={radius} fill="rgb(10 17 34 / 0.55)" stroke="rgb(255 255 255 / 0.16)" strokeWidth="5" />
         <circle
           cx="40"
           cy="40"
           r={radius}
           fill="none"
-          stroke="#c4f1c9"
+          stroke="#ECB424"
           strokeWidth="5"
           strokeLinecap="round"
           strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - Math.min(1, Math.max(0, closure)))}
+          strokeDashoffset={circumference * (1 - Math.min(1, Math.max(0, amount)))}
         />
       </svg>
       <span className="relative text-center leading-none text-white">
@@ -268,7 +303,7 @@ function ClosureRing({ closure, reps, target }: { closure: number; reps: number;
   );
 }
 
-function FingerBars({ curl, injured }: { curl: FingerValues; injured: Finger }) {
+function FingerBars({ fingers, injured }: { fingers: FingerValues; injured: Finger }) {
   return (
     <div className="grid grid-cols-5 gap-2" aria-hidden="true">
       {FINGERS.map((finger) => {
@@ -278,7 +313,7 @@ function FingerBars({ curl, injured }: { curl: FingerValues; injured: Finger }) 
             <div className={cx('relative h-12 w-full overflow-hidden rounded-[9px]', mine ? 'bg-mint/15 ring-1 ring-mint/50' : 'bg-white/[0.07]')}>
               <div
                 className={cx('absolute inset-x-0 bottom-0 rounded-[9px]', mine ? 'bg-mint' : 'bg-white/45')}
-                style={{ height: `${Math.round(Math.min(1, Math.max(0, curl[finger])) * 100)}%` }}
+                style={{ height: `${Math.round(Math.min(1, Math.max(0, fingers[finger])) * 100)}%` }}
               />
             </div>
             <span className={cx('text-[11.5px] leading-4', mine ? 'font-bold text-mint' : 'font-medium text-mist')}>{FINGER_LABEL[finger]}</span>
@@ -295,23 +330,27 @@ function formatDuration(ms: number): string {
 }
 
 function Summary({
+  exercise,
   result,
   previous,
   demo,
   site,
+  nextId,
   onAgain,
 }: {
+  exercise: ExerciseDefinition;
   result: SessionResult;
   previous: ExerciseSession | null;
   demo: boolean;
   site: TestSite;
+  /** The next exercise still to do today, if there is one. */
+  nextId: ExerciseId | null;
   onAgain(): void;
 }) {
-  const fingerName = site.finger === 'thumb' ? 'thumb' : `${site.finger} finger`;
   const counted = result.reps > 0;
   return (
     <main className="on-dark screen-in flex min-h-dvh flex-1 flex-col px-6 pb-[max(22px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] text-white sm:min-h-0 sm:pb-8 sm:pt-2">
-      <p className="text-center text-[14px] font-medium leading-5 text-mist">{EXERCISE.title}</p>
+      <p className="text-center text-[14px] font-medium leading-5 text-mist">{exercise.title}</p>
 
       <div className="mt-8 text-center">
         <p className="display nums text-[68px] leading-none text-mint">
@@ -319,7 +358,7 @@ function Summary({
           <span className="text-[26px] text-mist"> of {result.targetReps}</span>
         </p>
         <h1 className="display mx-auto mt-4 max-w-[300px] text-[26px] leading-[1.18] text-white" role="status">
-          {result.completed ? 'Session complete. Well done.' : counted ? 'Good work today.' : 'Nothing was counted this time.'}
+          {result.completed ? 'Done. Well done.' : counted ? 'Good work today.' : 'Nothing was counted this time.'}
         </h1>
         <p className="mx-auto mt-3 max-w-[310px] text-[15.5px] leading-6 text-mist">{patientSummaryLine(result, previous)}</p>
       </div>
@@ -327,11 +366,11 @@ function Summary({
       {counted ? (
         <dl className="mt-8 grid grid-cols-3 gap-2.5 text-center">
           {[
-            { label: `${fingerName} bend`, value: result.flexDeg !== null ? `≈${result.flexDeg}°` : '–' },
+            { label: `${fingerWords(site.finger)} bend`, value: result.flexDeg !== null ? `≈${result.flexDeg}°` : '–' },
             { label: 'Movement', value: result.rangeDeg !== null ? `≈${result.rangeDeg}°` : '–' },
             { label: 'Time', value: formatDuration(result.durationMs) },
           ].map((item) => (
-            <div key={item.label} className="rounded-[16px] border border-navy-rule bg-white/[0.05] px-2 py-4">
+            <div key={item.label} className="glass-dark rounded-[18px] px-2 py-4">
               <dd className="display nums text-[23px] leading-7 text-white">{item.value}</dd>
               <dt className="mt-1 text-[12px] leading-4 text-mist first-letter:uppercase">{item.label}</dt>
             </div>
@@ -347,10 +386,10 @@ function Summary({
 
       <div className="mt-auto space-y-2.5 pt-8">
         <Link
-          to="/patient/exercise"
-          className="flex min-h-14 items-center justify-center rounded-[14px] bg-mint px-5 text-[16.5px] font-bold text-ink active:opacity-90"
+          to={nextId ? `/patient/exercise/${nextId}` : '/patient/exercise'}
+          className="flex min-h-14 items-center justify-center rounded-[18px] bg-mint px-5 text-[16.5px] font-bold text-ink active:opacity-90"
         >
-          Done
+          {nextId ? 'Next exercise' : 'Done'}
         </Link>
         <Button variant="glass" size="md" block onClick={onAgain}>
           Go again
@@ -361,6 +400,13 @@ function Summary({
 }
 
 export function ExerciseSessionScreen() {
+  const { exerciseId } = useParams();
+  if (!isExerciseId(exerciseId)) return <Navigate to="/patient/exercise" replace />;
+  // Keyed so that moving to another exercise starts from scratch.
+  return <LiveSession key={exerciseId} exercise={EXERCISES[exerciseId]} />;
+}
+
+function LiveSession({ exercise }: { exercise: ExerciseDefinition }) {
   const patient = useActivePatient();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -378,7 +424,7 @@ export function ExerciseSessionScreen() {
   const [status, setStatus] = useState<'starting' | 'live' | 'error' | 'summary'>('starting');
   const [failure, setFailure] = useState<CameraFailure | null>(null);
   const [view, setView] = useState<LiveView>(EMPTY_VIEW);
-  const [outcome, setOutcome] = useState<{ result: SessionResult; previous: ExerciseSession | null } | null>(null);
+  const [outcome, setOutcome] = useState<{ result: SessionResult; previous: ExerciseSession | null; nextId: ExerciseId | null } | null>(null);
   /** Bumped to start a fresh session without leaving the screen. */
   const [attempt, setAttempt] = useState(0);
 
@@ -387,9 +433,10 @@ export function ExerciseSessionScreen() {
     let frameRequest = 0;
     let finished = false;
     let doneAt: number | null = null;
-    const tracker = new OpenCloseTracker(injured, EXERCISE.targetReps);
+    const tracker = new RepTracker(exercise, injured);
     const camera = demo ? null : new CameraHandSource();
-    const drawn = demo ? new DemoHandSource(injured) : null;
+    // A squeeze round a ball is a smaller movement than a fist, so the drawn hand does less.
+    const drawn = demo ? new DemoHandSource(injured, exercise.metric, exercise.id === 'putty-squeeze' ? 0.62 : 1) : null;
 
     setStatus('starting');
     setFailure(null);
@@ -402,20 +449,19 @@ export function ExerciseSessionScreen() {
       cancelAnimationFrame(frameRequest);
       camera?.stop();
       const result = tracker.result();
-      const earlier = sessionsForPatient(demoStore.getState().exerciseSessions ?? [], subject.current.patientId);
-      const previous = previousMeasured(earlier);
+      const stateNow = demoStore.getState();
+      const earlier = sessionsForPatient(stateNow.exerciseSessions ?? [], subject.current.patientId);
+      const previous = previousMeasured(earlier, undefined, exercise.id);
       // A session with nothing counted is not a session: nothing is saved.
       if (result.reps > 0) {
-        demoStore.recordExercise(
-          subject.current.patientId,
-          'open-close',
-          result,
-          demo ? 'demo-motion' : 'camera',
-          subject.current.site,
-        );
+        demoStore.recordExercise(subject.current.patientId, exercise.id, result, demo ? 'demo-motion' : 'camera', subject.current.site);
       }
+      const after = demoStore.getState();
+      const today = dateKeyOf(new Date().toISOString());
+      const plan = physioToday(after.exerciseSessions ?? [], after.exercisePlans, subject.current.patientId, today);
+      const nextId = plan.unlocked.find((id) => !plan.done.includes(id)) ?? null;
       if (!cancelled) {
-        setOutcome({ result, previous });
+        setOutcome({ result, previous, nextId });
         setStatus('summary');
       }
     };
@@ -443,13 +489,14 @@ export function ExerciseSessionScreen() {
           drawHand(context, frame, {
             width,
             height,
-            // The demonstration hand is laid out for a square picture as tall as the stage.
+            // The demonstration hand is laid out for a square picture.
             sourceWidth: camera && video?.videoWidth ? video.videoWidth : height,
             sourceHeight: camera && video?.videoHeight ? video.videoHeight : height,
+            fit: camera ? 'cover' : 'contain',
             mirrored: camera !== null,
             solid: camera === null,
             injured,
-            closure: state.pose?.closure ?? 0,
+            closure: state.amount,
             active: state.ready && state.framing === 'ok',
             sinceRep: state.lastRepAt === null ? null : now - state.lastRepAt,
             now,
@@ -461,8 +508,8 @@ export function ExerciseSessionScreen() {
         reps: state.reps,
         cue: state.cue.text,
         cuePhase: state.cue.phase,
-        closure: state.pose?.closure ?? 0,
-        curl: state.pose?.curl ?? EMPTY_VIEW.curl,
+        amount: state.amount,
+        fingers: state.fingers ?? EMPTY_VIEW.fingers,
         handVisible: state.handVisible,
         ready: state.ready,
       };
@@ -503,12 +550,22 @@ export function ExerciseSessionScreen() {
       // Leaving the screen always turns the camera off.
       camera?.stop();
     };
-  }, [demo, injured, attempt]);
+  }, [demo, injured, attempt, exercise]);
 
   const again = useCallback(() => setAttempt((value) => value + 1), []);
 
   if (status === 'summary' && outcome) {
-    return <Summary result={outcome.result} previous={outcome.previous} demo={demo} site={subject.current.site} onAgain={again} />;
+    return (
+      <Summary
+        exercise={exercise}
+        result={outcome.result}
+        previous={outcome.previous}
+        demo={demo}
+        site={subject.current.site}
+        nextId={outcome.nextId}
+        onAgain={again}
+      />
+    );
   }
 
   const copy = failure ? CAMERA_COPY[failure] : null;
@@ -521,11 +578,11 @@ export function ExerciseSessionScreen() {
           type="button"
           onClick={() => navigate('/patient/exercise')}
           aria-label="Close the exercise"
-          className="grid size-11 shrink-0 place-items-center rounded-full border border-mist/40 text-white hover:bg-white/[0.06]"
+          className="glass-dark grid size-11 shrink-0 place-items-center rounded-full text-white hover:bg-white/[0.14]"
         >
-          <X className="size-5" strokeWidth={2.2} aria-hidden="true" />
+          <X size={19} weight="bold" aria-hidden="true" />
         </button>
-        <h1 className="min-w-0 flex-1 truncate text-[18px] font-bold leading-6 tracking-[-0.02em]">{EXERCISE.title}</h1>
+        <h1 className="min-w-0 flex-1 truncate text-[18px] font-bold leading-6 tracking-[-0.02em]">{exercise.title}</h1>
         <span className={cx('rounded-full px-3 py-1 text-[12.5px] font-bold leading-5', demo ? 'border border-dashed border-mist/60 text-mist' : 'bg-mint text-ink')}>
           {demo ? 'Demonstration' : 'Camera'}
         </span>
@@ -533,7 +590,7 @@ export function ExerciseSessionScreen() {
 
       <div
         ref={stageRef}
-        className={cx('relative mt-3 min-h-[280px] flex-1 overflow-hidden rounded-[26px] border border-navy-rule', demo ? 'stage-demo' : 'bg-navy-950')}
+        className={cx('relative mt-3 min-h-[280px] flex-1 overflow-hidden rounded-[28px] border border-navy-rule', demo ? 'stage-demo' : 'bg-navy-950')}
       >
         <video
           ref={videoRef}
@@ -549,13 +606,13 @@ export function ExerciseSessionScreen() {
         {status === 'live' ? (
           <>
             <div className="absolute left-3.5 top-3.5">
-              <ClosureRing closure={view.closure} reps={view.reps} target={EXERCISE.targetReps} />
+              <AmountRing amount={view.amount} reps={view.reps} target={exercise.targetReps} />
             </div>
             <div className="absolute inset-x-3.5 bottom-3.5">
               <p
                 key={view.cue}
                 className={cx(
-                  'cue-in mx-auto w-fit max-w-full rounded-[16px] px-5 py-3 text-center text-[18px] font-bold leading-6 backdrop-blur-md',
+                  'cue-in mx-auto w-fit max-w-full rounded-[18px] px-5 py-3 text-center text-[18px] font-bold leading-6 backdrop-blur-md',
                   steady ? 'bg-navy-950/70 text-white' : 'bg-mint/95 text-ink',
                 )}
                 role="status"
@@ -590,7 +647,13 @@ export function ExerciseSessionScreen() {
                 <Button variant="glass" size="md" block onClick={again}>
                   Try again
                 </Button>
-                <ButtonLink to="/patient/exercise/open-close?mode=demo" variant="ghost" size="md" block className="!text-mint hover:!bg-white/[0.06]">
+                <ButtonLink
+                  to={`/patient/exercise/${exercise.id}/live?mode=demo`}
+                  variant="ghost"
+                  size="md"
+                  block
+                  className="!text-mint hover:!bg-white/[0.06]"
+                >
                   Watch a demonstration instead
                 </ButtonLink>
               </div>
@@ -600,11 +663,11 @@ export function ExerciseSessionScreen() {
       </div>
 
       <div className="mt-3.5">
-        <FingerBars curl={view.curl} injured={injured} />
+        <FingerBars fingers={view.fingers} injured={injured} />
       </div>
 
       <div className="mt-3.5 flex items-center gap-1.5" aria-hidden="true">
-        {Array.from({ length: EXERCISE.targetReps }, (_, index) => (
+        {Array.from({ length: exercise.targetReps }, (_, index) => (
           <span key={index} className={cx('h-1.5 flex-1 rounded-full transition-colors duration-300', index < view.reps ? 'bg-mint' : 'bg-white/15')} />
         ))}
       </div>

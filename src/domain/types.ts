@@ -114,7 +114,7 @@ export type TrialOutcome =
 
 // ---------- Guided exercises ----------
 
-export type ExerciseId = 'open-close';
+export type ExerciseId = 'finger-slides' | 'open-close' | 'putty-squeeze';
 
 /**
  * camera: tracked from this device's camera. The only source that is not simulated.
@@ -375,7 +375,7 @@ export interface DemoState {
   exerciseSessions: ExerciseSession[];
   /**
    * Exercises a clinician has unlocked, per patient id. A patient with no entry
-   * has the phase 1 exercise only. The app never unlocks anything by itself.
+   * has the two phase 1 exercises only. The app never unlocks anything by itself.
    */
   exercisePlans: Record<string, ExerciseId[]>;
   /**

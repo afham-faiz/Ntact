@@ -1,5 +1,20 @@
 # Design
 
+## Current direction: the pitch-deck palette, on glass (14 November 2026)
+
+This replaces the flat direction described further down, which is kept for history.
+
+- **Colour from the team's slides.** Deep navy `#14213D` (`ink`), gold `#ECB424` (`mint`), a mid blue for data `#2E4A7D` (`teal-600`), red `#B8413C` (`wine-600`), on white. The token names are unchanged so every screen re-skinned at once.
+- **Red means a problem.** Same-day flags and errors only. Decoration (underlines, the active tab, highlights) is gold; step numbers and links are blue.
+- **Frosted glass over a lit ground.** Cards, bars and the tab bar are translucent white with a blur (`.glass`, `.glass-bar`); on navy they are `.glass-dark`. The ground (`.ground`, `.ground-wide`) is white with soft gold and blue light for the glass to catch. Shadows are back.
+- **Icons are Phosphor** (`@phosphor-icons/react`, MIT): outline at rest, filled when active. Used in the tab bar, the Today list, Help and the clinician menu.
+- **Less on each screen.** Today is a three-item to-do list. Charts live on Recovery. Troubleshooting lives on Help, reached from the "?" at the top right of every screen. The clinician record is three tabs instead of eleven panels.
+- **One accent per surface.** On navy the primary action is gold. On white it is navy.
+
+---
+
+## Earlier direction (superseded)
+
 This is the fourth visual direction. The first three were rejected in review (flat editorial with a serif; a rounded-card "dashboard kit" look; a version too close to the UKMLA site). What survived is recorded here.
 
 ## Principles

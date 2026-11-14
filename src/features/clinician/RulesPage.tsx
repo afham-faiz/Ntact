@@ -186,7 +186,7 @@ export function RulesPage() {
                     </select>
                   </label>
                   <label className="flex h-10 cursor-pointer items-center gap-2 text-[14px] font-semibold text-ink">
-                    <input type="checkbox" checked={enabled} onChange={(event) => patchRule(rule.key, { enabled: event.target.checked })} className="size-4 accent-[#223641]" />
+                    <input type="checkbox" checked={enabled} onChange={(event) => patchRule(rule.key, { enabled: event.target.checked })} className="size-4 accent-[#14213D]" />
                     On
                   </label>
                 </div>

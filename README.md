@@ -57,19 +57,22 @@ Full step-by-step hardware checklist, troubleshooting and nRF Connect instructio
 | --- | --- |
 | `/demo` | Launchers, the five-scene judge demo, the device switch, every simulation control, developer panel |
 | `/onboarding` | Optional three-step introduction: Touch Assist, the daily test, finger and surgery date |
-| `/patient` | Home: today's test, Touch Assist, recent tests, daily check-in |
+| `/patient` | Home: the three things to do today (test, exercise, check-in) and Touch Assist |
 | `/patient/assist` | Touch Assist explanation and enable/pause |
 | `/patient/test` | Pre-test, blinded test, results, connection-lost and device-error states |
-| `/patient/exercise` | Guided exercises: the plan, movement trend, privacy and accuracy notes |
-| `/patient/exercise/open-close` | Live session: camera hand tracking, rep counting, real-time coaching. Add `?mode=demo` for the drawn demonstration hand |
+| `/patient/exercise` | Physio: the day's three exercises (one locked until a clinician unlocks it) and the movement trend |
+| `/patient/exercise/:id` | Get ready: the three steps for one exercise, then Start |
+| `/patient/exercise/:id/live` | Live session: camera hand tracking, rep counting, real-time coaching. Add `?mode=demo` for the drawn demonstration hand |
 | `/patient/check-in` | Four-question daily check-in, editable the same day |
 | `/patient/check-in/weekly` | Three weekly questions: cold sensitivity, tingling, everyday function |
 | `/patient/progress` | Recovery curve, reported pain, day-by-day history |
-| `/patient/device` | Connect and disconnect, device switch, mode, details, troubleshooting |
+| `/patient/settings` | Settings: connect and disconnect the wearable, device switch, your details, links to Help and the other views |
+| `/patient/help` | Where everything is, how to do the test, and troubleshooting. Reached from the "?" on every screen |
 | `/clinician` | Triage worklist: summary filters and a table ordered by review status |
 | `/clinician/patients/:id` | Clinical record: why it is flagged, recovery curve, return window, adherence, results, check-ins, notes |
 | `/clinician/reviews` | Every review flag, with record-review and reopen |
 | `/clinician/rules` | Editable provisional triage rules and return-window assumptions |
+| `/clinician/help` | Where things are in the dashboard, what the colours mean, who each flag goes to |
 
 ## Six-scene demo
 
@@ -86,7 +89,17 @@ Use one browser for the whole demo (separate tabs or windows are fine).
 
 ## Guided exercises (camera)
 
-The patient holds their hand up to the camera. The app tracks 21 points on the hand, counts repetitions, and coaches in real time ("Keep curling, gently", "Bring your index finger in with the others"). One exercise is built: **Open and close**, ten repetitions. More are added by defining them in `src/domain/exercise.ts`.
+The patient's "Physio" tab. The app tracks 21 points on the hand through the camera, counts repetitions, and coaches in real time ("Keep curling, gently", "Bring your index finger in with the others"). There are three exercises, ten repetitions each, defined in `src/domain/exercise.ts`:
+
+| Exercise | What it is | Unlocked |
+| --- | --- | --- |
+| Finger slides | Hand flat on the table; slide the fingertips back towards the palm so the knuckles lift | By default |
+| Open and close | A gentle fist, then fingers stretched wide. The movement trend is read from this one | By default |
+| Putty squeeze | Squeeze therapy putty or a soft ball, then let go | Only when a clinician unlocks it, on the patient record |
+
+The day's physio counts as done when every unlocked exercise has been done.
+
+- **Finger slides needs the camera pointed at the table.** A hand lying flat is a harder view for hand tracking than a raised palm, and none of the three has been tried with a real hand yet.
 
 - **Tracking:** MediaPipe Hand Landmarker, running in the browser (`src/exercise/cameraHand.ts`). The WebAssembly runtime is served by this app from `/mediapipe/wasm` (copied out of `node_modules` by `scripts/copy-mediapipe.mjs` before `dev` and `build`). The hand model, about 8 MB, is fetched from Google's public model storage the first time and then cached, so the first session needs a connection.
 - **Privacy:** video never leaves the device. Nothing is recorded or uploaded; only repetitions and estimated angles are saved.
@@ -124,6 +137,8 @@ All from plain, readable rules (`src/domain/triage.ts`). There is no score and n
 
 Behaviour worth knowing:
 
+- **How the test is done physically.** The prototype has one vibration motor, on the wrist strap. Touch Assist uses it on the wrist. For the sensation test the strap is taken off and laid flat, and the fingertip rests on the motor disc. The app's pictures and steps show this.
+
 - The patient screen is blinded by construction: the test state machine discards `LEVEL` messages, so no screen can display them. The step appears only after the device reports `FELT`.
 - `NO_FELT` and `STOPPED` are separate record types and are never stored as a number.
 - A tap during the silent first second is recorded as a cancelled test, not a detection. (Assumes the firmware answers `FELT,0,0,ms`; to confirm.)
@@ -146,7 +161,7 @@ src/demo/       seed data (nine fictional patients) and the localStorage store
 src/app/        React providers: device status, test session
 src/components/ shared UI and charts
 src/features/   patient, clinician, demo screens
-tests/          376 tests: domain, store, simulated device, Bluetooth adapter, device and test-session
+tests/          382 tests: domain, store, simulated device, Bluetooth adapter, device and test-session
                 providers end to end, the exercise engine, and the care model (routing, follow-up, weekly)
 ```
 

@@ -69,7 +69,7 @@ export function OnboardingScreen() {
           {Array.from({ length: TOTAL }, (_, index) => (
             <li
               key={index}
-              className={cx('h-1.5 rounded-full transition-all duration-200', index + 1 === step ? 'w-7 bg-wine-600' : index + 1 < step ? 'w-3 bg-ink/40' : 'w-3 bg-ink/15')}
+              className={cx('h-1.5 rounded-full transition-all duration-200', index + 1 === step ? 'w-7 bg-mint' : index + 1 < step ? 'w-3 bg-ink/40' : 'w-3 bg-ink/15')}
             />
           ))}
         </ol>
@@ -178,7 +178,7 @@ export function OnboardingScreen() {
               aria-invalid={!dateValid}
               className="sb-date mt-1.5 rounded-[14px] border border-rule bg-paper text-[16px] font-semibold text-ink"
             />
-            <p className={cx('mt-1.5 text-[13px] leading-5', dateValid ? 'text-ink-soft' : 'text-wine-600')}>
+            <p className={cx('mt-1.5 text-[13px] leading-5', dateValid ? 'text-ink-soft' : 'text-teal-600')}>
               {dateValid ? 'An approximate date is fine. This is a fictional demo profile.' : 'Choose a date that is today or earlier.'}
             </p>
           </>

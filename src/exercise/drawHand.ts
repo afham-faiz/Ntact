@@ -8,9 +8,9 @@
 import { FINGER_CHAIN, HAND_BONES, type HandFrame, type Point3 } from '../domain/exercise';
 import type { Finger } from '../domain/types';
 
-const MINT = '196, 241, 201';
+const MINT = '236, 180, 36';
 const WHITE = '255, 255, 255';
-const NAVY_FLESH = '58, 86, 101';
+const NAVY_FLESH = '52, 70, 107';
 
 export interface DrawOptions {
   /** CSS pixel size of the canvas. */
@@ -19,6 +19,8 @@ export interface DrawOptions {
   /** Size of the picture the landmarks refer to, in its own pixels. */
   sourceWidth: number;
   sourceHeight: number;
+  /** 'cover' matches a camera picture shown with object-fit: cover. 'contain' keeps the whole drawn hand in view. */
+  fit: 'cover' | 'contain';
   /** True for a selfie camera, which is shown flipped like a mirror. */
   mirrored: boolean;
   /** Draw a solid stylised hand under the skeleton. Used when there is no camera picture behind it. */
@@ -40,8 +42,9 @@ interface Pixel {
 
 /** Landmarks to canvas pixels, matching a picture shown with `object-fit: cover`. */
 function project(points: Point3[], options: DrawOptions): Pixel[] {
-  const { width, height, sourceWidth, sourceHeight, mirrored } = options;
-  const scale = Math.max(width / sourceWidth, height / sourceHeight);
+  const { width, height, sourceWidth, sourceHeight, mirrored, fit } = options;
+  const scale =
+    fit === 'contain' ? Math.min(width / sourceWidth, height / sourceHeight) : Math.max(width / sourceWidth, height / sourceHeight);
   const offsetX = (width - sourceWidth * scale) / 2;
   const offsetY = (height - sourceHeight * scale) / 2;
   return points.map((point) => {

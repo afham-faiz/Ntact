@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, CircleSlash, EyeOff, Hand, TriangleAlert, Unplug } from 'lucide-react';
+import { Check, CircleSlash, TriangleAlert, Unplug } from 'lucide-react';
 import { useDevice } from '../../app/DeviceContext';
 import { useTestSession } from '../../app/TestSessionContext';
 import { useActivePatient, useDemoState, useToday } from '../../app/hooks';
@@ -16,10 +16,11 @@ import { Screen, TopBar } from './PatientShell';
 
 // ---------- Before the test ----------
 
+/** The physical prototype has one motor, on the wristband. The test is done with the band off the wrist. */
 const PREP = [
-  { icon: Hand, text: 'Get comfortable. Rest your finger gently on the test surface.' },
-  { icon: Check, text: 'When you first feel a vibration, tap the button.' },
-  { icon: EyeOff, text: 'You won’t see the vibration strength during the test.' },
+  'Take the band off your wrist and lay it flat.',
+  'Rest the tip of your {finger} on the round disc.',
+  'Tap “I Feel It” the moment you feel a buzz.',
 ];
 
 function PreTest({ arming }: { arming: boolean }) {
@@ -29,6 +30,7 @@ function PreTest({ arming }: { arming: boolean }) {
   const device = useDevice();
   const session = useTestSession();
   const connected = device.connection === 'connected';
+  const fingerName = patient.finger === 'thumb' ? 'thumb' : `${patient.finger} finger`;
   const primary = primaryTestOfDay(testsOnDay(testsForPatient(state.tests, patient.id), today));
   const doneToday = primary !== null && primary.outcome !== 'STOPPED';
 
@@ -59,16 +61,16 @@ function PreTest({ arming }: { arming: boolean }) {
         )
       }
     >
-      <p className="-mt-1 text-[15.5px] leading-6 text-ink-soft">A short check of what you can feel</p>
+      <p className="-mt-1 text-[15.5px] leading-6 text-ink-soft">A 30-second check of what your fingertip can feel.</p>
 
-      <figure className="mt-4 overflow-hidden rounded-feature border border-rule bg-paper">
+      <figure className="glass mt-4 overflow-hidden rounded-[22px]">
         <HandIllustration
           hand={patient.hand}
           finger={patient.finger}
+          mode="test"
           active={false}
-          showPath={false}
-          className="mx-auto block h-[176px] w-auto pt-2"
-          title={`A ${patient.hand} hand seen from the palm, with the sleeve on the ${patient.finger === 'thumb' ? 'thumb' : `${patient.finger} finger`} and the band at the wrist.`}
+          className="mx-auto block h-[236px] w-auto pt-1"
+          title={`A ${patient.hand} hand seen from above. The wristband is off the wrist and lying flat, and the tip of the ${fingerName} rests on the round disc on the band.`}
         />
       </figure>
 
@@ -88,18 +90,16 @@ function PreTest({ arming }: { arming: boolean }) {
 
       <Card className="mt-4 p-4">
         <ol className="space-y-3.5">
-          {PREP.map((item, index) => (
-            <li key={item.text} className="flex gap-3.5 text-[15px] leading-[22px] text-ink">
-              <span className="nums w-4 shrink-0 text-[15px] font-bold text-wine-600">{index + 1}</span>
-              <span>{item.text}</span>
+          {PREP.map((step, index) => (
+            <li key={step} className="flex gap-3.5 text-[15.5px] leading-[23px] text-ink">
+              <span className="nums w-4 shrink-0 font-bold text-teal-600">{index + 1}</span>
+              <span>{step.replace('{finger}', fingerName)}</span>
             </li>
           ))}
         </ol>
       </Card>
 
-      <p className="mt-4 flex items-center gap-2 text-[14px] leading-6 text-ink-soft">
-        About 30 seconds. Touch Assist pauses while you test.
-      </p>
+      <p className="mt-4 text-[14px] leading-6 text-ink-soft">Touch Assist pauses while you test. Put the band back on afterwards.</p>
       {doneToday ? (
         <p className="mt-1 text-[14px] leading-6 text-ink-soft">
           You have already completed a test today. Another one is saved alongside it.
@@ -109,8 +109,8 @@ function PreTest({ arming }: { arming: boolean }) {
 
       <Explainer summary="How it works" className="mt-1">
         <p>
-          The wearable starts with a moment of nothing, then tries up to ten vibration settings, from its gentlest to its
-          strongest. It ends on its own.
+          The disc on the band starts with a moment of nothing, then buzzes at up to ten settings, from its gentlest to
+          its strongest. It ends on its own after about 30 seconds.
         </p>
         <p className="mt-2">
           The app deliberately doesn’t show which setting is running, so that what you see can’t influence what you feel.
@@ -130,6 +130,8 @@ function PreTest({ arming }: { arming: boolean }) {
 function RunningTest({ phase }: { phase: TestPhase }) {
   const session = useTestSession();
   const device = useDevice();
+  const patient = useActivePatient();
+  const fingerName = patient.finger === 'thumb' ? 'thumb' : `${patient.finger} finger`;
   const view = toBlindedView(phase);
   const stopping = phase.name === 'stopping';
 
@@ -137,20 +139,37 @@ function RunningTest({ phase }: { phase: TestPhase }) {
     <main className="on-dark flex min-h-dvh flex-1 flex-col px-6 sm:min-h-0 pb-[max(22px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] text-white sm:pb-8 sm:pt-2">
       <p className="text-center text-[14px] font-medium leading-5 text-mist">Daily sensation test</p>
 
-      <h1 className="display mx-auto mt-6 max-w-[310px] text-center text-[30px] leading-[1.16] text-white">
-        Tap as soon as you feel a vibration
+      {/* A fixed picture of the position to hold. It does not move with the device, so it gives nothing away. */}
+      <figure className="glass-dark mx-auto mt-4 flex w-full max-w-[330px] items-center gap-3 rounded-[22px] py-2 pl-2 pr-4">
+        <HandIllustration
+          hand={patient.hand}
+          finger={patient.finger}
+          mode="test"
+          tone="dark"
+          crop
+          active={false}
+          className="h-[104px] w-auto shrink-0"
+          title={`A ${patient.hand} hand with the tip of the ${fingerName} resting on the round disc of a wristband lying flat.`}
+        />
+        <figcaption className="text-[14px] leading-5 text-mist">
+          Keep your <span className="font-bold text-white">{fingerName}</span> resting on the disc.
+        </figcaption>
+      </figure>
+
+      <h1 className="display mx-auto mt-5 max-w-[310px] text-center text-[27px] leading-[1.16] text-white">
+        Tap as soon as you feel a buzz
       </h1>
 
-      <div className="relative mt-auto grid place-items-center py-8">
-        <span className="breathe absolute size-[258px] rounded-full border border-mint/30" aria-hidden="true" />
-        <span className="breathe-late absolute size-[304px] rounded-full border border-mint/20" aria-hidden="true" />
-        <span className="breathe-later absolute size-[350px] rounded-full border border-mint/10" aria-hidden="true" />
+      <div className="relative mt-auto grid place-items-center py-6">
+        <span className="breathe absolute size-[236px] rounded-full border border-mint/30" aria-hidden="true" />
+        <span className="breathe-late absolute size-[278px] rounded-full border border-mint/20" aria-hidden="true" />
+        <span className="breathe-later absolute size-[320px] rounded-full border border-mint/10" aria-hidden="true" />
         <button
           type="button"
           onClick={session.tapFelt}
           disabled={!view.canRespond && !view.acknowledged}
           aria-disabled={view.acknowledged || undefined}
-          className="relative grid size-[212px] select-none place-items-center rounded-full bg-mint text-ink transition-transform duration-100 active:scale-[0.965] disabled:opacity-60"
+          className="relative grid size-[196px] select-none place-items-center rounded-full bg-mint text-ink shadow-[0_0_0_10px_rgb(236_180_36_/_0.16),0_24px_50px_-18px_rgb(236_180_36_/_0.6)] transition-transform duration-100 active:scale-[0.965] disabled:opacity-60"
         >
           <span className="display text-[31px] leading-none">
             {view.acknowledged ? (
@@ -233,7 +252,7 @@ function Result({ outcome }: { outcome: TrialOutcome }) {
           A lower detected level means you responded to a weaker commanded setting. Results can vary and are not a diagnosis.
         </p>
         <p className="mt-2.5 text-[14.5px] leading-6 text-ink-soft">
-          Another day of tracking your recovery.{assistReturns ? ' Touch Assist turns back on when you leave this screen.' : ''}
+          Put the band back on your wrist.{assistReturns ? ' Touch Assist turns back on when you leave this screen.' : ''}
         </p>
       </ResultShell>
     );
@@ -260,11 +279,11 @@ function Result({ outcome }: { outcome: TrialOutcome }) {
           You didn’t report feeling a vibration this time.
         </h2>
         <Card className="mt-5 space-y-3 p-5 text-[15.5px] leading-6 text-ink">
-          <p>That can happen for ordinary reasons: how the sleeve is sitting, how your finger was resting, or cold hands.</p>
+          <p>That can happen for ordinary reasons: where your fingertip was resting on the disc, how firmly, or cold hands.</p>
           <p>It is saved as “not felt”. It isn’t a score and it isn’t placed on the 1 to 10 scale.</p>
         </Card>
         <p className="mt-4 text-[14.5px] leading-6 text-ink-soft">
-          You can try again later, or carry on with your day. Recovery looks different for everyone.
+          You can try again later, or carry on with your day. Put the band back on your wrist.
           {assistReturns ? ' Touch Assist turns back on when you leave this screen.' : ''}
         </p>
         <Button variant="ghost" size="md" className="-ml-5 mt-1" onClick={session.reset}>
@@ -406,8 +425,8 @@ function DeviceError({ code }: { code: string }) {
           <Button variant="primary" size="lg" className="flex-1" onClick={session.reset}>
             Try again
           </Button>
-          <ButtonLink to="/patient/device" variant="outline" size="lg" className="flex-1">
-            Device help
+          <ButtonLink to="/patient/help" variant="outline" size="lg" className="flex-1">
+            Help
           </ButtonLink>
         </div>
       }

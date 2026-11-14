@@ -214,7 +214,7 @@ export function ProgressScreen() {
                             /
                           </span>
                           <span>Cold: {describeCold(checkIn).toLowerCase()}</span>
-                          {skin ? <span className={cx('font-semibold text-wine-600')}>New skin issue</span> : null}
+                          {skin ? <span className={cx('font-semibold text-teal-600')}>New skin issue</span> : null}
                         </p>
                         {note ? <p className="mt-1.5 text-[13.5px] leading-5 text-ink-soft">“{note}”</p> : null}
                       </div>
@@ -230,7 +230,7 @@ export function ProgressScreen() {
           <button
             type="button"
             onClick={() => setShown(shown + HISTORY_PAGE)}
-            className="mt-3 min-h-11 w-full rounded-full bg-paper text-[14.5px] font-semibold text-ink underline decoration-wine-600 decoration-2 underline-offset-[6px] hover:bg-navy-50"
+            className="mt-3 min-h-11 w-full rounded-full bg-paper text-[14.5px] font-semibold text-ink underline decoration-mint decoration-2 underline-offset-[6px] hover:bg-navy-50"
           >
             Show earlier days
           </button>

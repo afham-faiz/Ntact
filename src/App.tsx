@@ -1,6 +1,7 @@
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { DeviceProvider } from './app/DeviceContext';
 import { ToastProvider } from './components/Toast';
+import { ClinicianHelpPage } from './features/clinician/ClinicianHelpPage';
 import { ClinicianShell } from './features/clinician/ClinicianShell';
 import { PatientRecordPage } from './features/clinician/PatientRecordPage';
 import { ReviewsPage } from './features/clinician/ReviewsPage';
@@ -10,7 +11,8 @@ import { WorklistPage } from './features/clinician/WorklistPage';
 import { AssistScreen } from './features/patient/AssistScreen';
 import { CheckInScreen } from './features/patient/CheckInScreen';
 import { DeviceScreen } from './features/patient/DeviceScreen';
-import { ExerciseHome, ExerciseSessionScreen } from './features/patient/ExerciseScreen';
+import { ExerciseHome, ExerciseReadyScreen, ExerciseSessionScreen } from './features/patient/ExerciseScreen';
+import { HelpScreen } from './features/patient/HelpScreen';
 import { OnboardingScreen } from './features/patient/OnboardingScreen';
 import { PatientFrame, PatientTabs } from './features/patient/PatientShell';
 import { ProgressScreen } from './features/patient/ProgressScreen';
@@ -47,11 +49,14 @@ export function App() {
               <Route path="assist" element={<AssistScreen />} />
               <Route path="test" element={<TestScreen />} />
               <Route path="exercise" element={<ExerciseHome />} />
-              <Route path="exercise/open-close" element={<ExerciseSessionScreen />} />
+              <Route path="exercise/:exerciseId" element={<ExerciseReadyScreen />} />
+              <Route path="exercise/:exerciseId/live" element={<ExerciseSessionScreen />} />
               <Route path="check-in" element={<CheckInScreen />} />
               <Route path="check-in/weekly" element={<WeeklyCheckInScreen />} />
               <Route path="progress" element={<ProgressScreen />} />
-              <Route path="device" element={<DeviceScreen />} />
+              <Route path="settings" element={<DeviceScreen />} />
+              <Route path="device" element={<Navigate to="/patient/settings" replace />} />
+              <Route path="help" element={<HelpScreen />} />
             </Route>
           </Route>
 
@@ -60,6 +65,7 @@ export function App() {
             <Route path="patients/:id" element={<PatientRecordPage />} />
             <Route path="reviews" element={<ReviewsPage />} />
             <Route path="rules" element={<RulesPage />} />
+            <Route path="help" element={<ClinicianHelpPage />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

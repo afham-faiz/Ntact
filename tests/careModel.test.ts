@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { createSeedState } from '../src/demo/seed';
 import { DemoStore, STORAGE_KEY } from '../src/demo/store';
 import { weeklyDue, weeklyForPatient } from '../src/domain/checkIn';
-import { summariseReps } from '../src/domain/exercise';
+import { DEFAULT_UNLOCKED, EXERCISES, EXERCISE_ORDER, physioToday, summariseReps, unlockedExercises } from '../src/domain/exercise';
 import {
   DEFAULT_TRIAGE_CONFIG,
   ROUTE_LABEL,
@@ -18,7 +18,6 @@ import {
 } from '../src/domain/triage';
 import type { DemoState, TriageRuleId } from '../src/domain/types';
 import { exerciseSourceLabel } from '../src/features/clinician/MovementPanel';
-import { unlockedExercises } from '../src/features/patient/ExerciseScreen';
 import { FIXED_DATE_KEY as TODAY, FIXED_NOW, MemoryStorage, checkInOn, daysFromToday, makePatient } from './helpers';
 
 const freshStore = () => new DemoStore(new MemoryStorage(), FIXED_NOW);
@@ -110,17 +109,38 @@ describe('exercise records', () => {
 });
 
 describe('decisions kept for the clinician', () => {
-  it('gives every patient the phase 1 exercise until a clinician changes the plan', () => {
+  it('gives every patient the two phase 1 exercises, and keeps the putty squeeze locked, until a clinician changes the plan', () => {
     const store = freshStore();
-    expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual(['open-close']);
+    expect(EXERCISE_ORDER).toEqual(['finger-slides', 'open-close', 'putty-squeeze']);
+    expect(DEFAULT_UNLOCKED).toEqual(['finger-slides', 'open-close']);
+    expect(EXERCISES['putty-squeeze']).toMatchObject({ phase: 2, unlockedByDefault: false });
+    expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual(['finger-slides', 'open-close']);
+
+    // The clinician unlocks the later-stage exercise for one patient.
+    store.setExercisePlan('p-maya', ['putty-squeeze', 'finger-slides', 'open-close']);
+    expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual(['finger-slides', 'open-close', 'putty-squeeze']);
+    // Nobody else's plan moved.
+    expect(unlockedExercises(store.getState().exercisePlans, 'p-noor')).toEqual(['finger-slides', 'open-close']);
 
     store.setExercisePlan('p-maya', []);
     expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual([]);
-    // Nobody else's plan moved.
-    expect(unlockedExercises(store.getState().exercisePlans, 'p-noor')).toEqual(['open-close']);
+  });
 
-    store.setExercisePlan('p-maya', ['open-close']);
-    expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual(['open-close']);
+  it('counts the day’s physio as done only when every unlocked exercise has been done', () => {
+    const store = freshStore();
+    const result = summariseReps([{ flexDeg: 150, extDeg: 30 }], 10, 12_000);
+    const site = { hand: 'right', finger: 'index' } as const;
+    const today = () => physioToday(store.getState().exerciseSessions, store.getState().exercisePlans, 'p-maya', TODAY);
+
+    expect(today()).toMatchObject({ done: [], allDone: false });
+    store.recordExercise('p-maya', 'open-close', result, 'camera', site, FIXED_NOW);
+    expect(today()).toMatchObject({ done: ['open-close'], allDone: false });
+    store.recordExercise('p-maya', 'finger-slides', result, 'camera', site, FIXED_NOW);
+    expect(today()).toMatchObject({ done: ['finger-slides', 'open-close'], allDone: true });
+
+    // Unlocking the third exercise makes the day incomplete again.
+    store.setExercisePlan('p-maya', ['finger-slides', 'open-close', 'putty-squeeze']);
+    expect(today().allDone).toBe(false);
   });
 
   it('puts nobody on patient-initiated follow-up until a clinician does, and it can be undone', () => {

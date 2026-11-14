@@ -27,7 +27,7 @@
 import { painOf, skinIssueOf, skinNoteOf } from './checkIn';
 import { addDays, dateKeyOf, daysBetween, formatDay, formatDayShort, type DateKey } from './dates';
 import { consecutiveMissedTests, lastCompletedTestDay } from './adherence';
-import { sessionsForPatient } from './exercise';
+import { sessionsForPatient, trendSessions } from './exercise';
 import {
   buildDaySeries,
   checkInsBefore,
@@ -144,7 +144,7 @@ export function ruleCondition(ruleId: TriageRuleId, config: TriageConfig): strin
     case 'MISSED_EXERCISES':
       return `${config.missedExercises.consecutiveDays} or more consecutive days, counted back from yesterday, with no exercise session. Not applied until a first session is on record.`;
     case 'MOVEMENT_DECLINE':
-      return `The camera-estimated range of the injured finger, taken as the median of the latest ${config.movementDecline.sessionsPerSide} sessions, is ${config.movementDecline.minDropDeg} degrees or more below the median of the ${config.movementDecline.sessionsPerSide} sessions before them. Camera estimates are approximate and are not goniometry.`;
+      return `The camera-estimated range of the injured finger in the open-and-close exercise, taken as the median of the latest ${config.movementDecline.sessionsPerSide} sessions, is ${config.movementDecline.minDropDeg} degrees or more below the median of the ${config.movementDecline.sessionsPerSide} sessions before them. Camera estimates are approximate and are not goniometry.`;
     case 'CLINICIAN_FLAG':
       return 'Marked for review by hand in this portal.';
   }
@@ -373,7 +373,7 @@ function missedExercises(patient: Patient, sessions: ExerciseSession[], today: D
 function movementDecline(patient: Patient, sessions: ExerciseSession[], today: DateKey, config: TriageConfig): TriageFlag | null {
   const rule = config.movementDecline;
   if (!rule.enabled || rule.sessionsPerSide < 1) return null;
-  const measured = sessions.filter((session) => session.rangeDeg !== null && dateKeyOf(session.timestamp) <= today);
+  const measured = trendSessions(sessions).filter((session) => dateKeyOf(session.timestamp) <= today);
   if (measured.length < rule.sessionsPerSide * 2) return null;
   const recent = measured.slice(-rule.sessionsPerSide);
   const earlier = measured.slice(-rule.sessionsPerSide * 2, -rule.sessionsPerSide);

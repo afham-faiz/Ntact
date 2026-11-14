@@ -1,13 +1,15 @@
 @import "tailwindcss";
 
 /*
-  Ntact design tokens, direction 2.
+  Ntact design tokens, direction 4: the pitch-deck palette, on glass.
 
-  Direction 1 (ivory canvas, serif headline, flat navy panels, hairlines) was rejected in
-  review as flat. This system keeps the colours sampled from the UKMLA reference as the
-  identity (navy #223641, mint #C4F1C9, burgundy #992335) and applies them in the style
-  of the references supplied afterwards: layered white cards on a pale cool ground, soft
-  shadows, pastel tiles and gradient-filled charts. See docs/DESIGN.md.
+  Colours are sampled from the team's slides: deep navy (#14213D), gold (#ECB424), a
+  mid blue for data (#2E4A7D) and red (#B8413C). White is the ground. Red is kept for
+  things that need attention; it is never decoration. Surfaces are frosted glass over a
+  softly lit ground, with real shadows, so the app has depth without clutter.
+
+  Token NAMES are kept from the earlier directions so every screen re-skins at once:
+  `mint` is now the gold, `teal` is the blue, `wine` is the red.
 */
 @theme {
   --color-*: initial;
@@ -16,47 +18,47 @@
   --color-black: #0b151a;
 
   /* Ground and surfaces */
-  --color-canvas: #f2f5f6;
-  --color-canvas-deep: #e2e8eb;
+  --color-canvas: #f3f5fa;
+  --color-canvas-deep: #e4e9f2;
   --color-paper: #ffffff;
 
   /* Text. Ink is the navy sampled from the UKMLA reference. */
-  --color-ink: #223641;
-  --color-ink-soft: #5a6a72;
-  --color-ink-faint: #94a1a7;
-  --color-line: #e1e7ea;
-  --color-line-soft: #edf1f3;
+  --color-ink: #14213d;
+  --color-ink-soft: #55617a;
+  --color-ink-faint: #97a1b5;
+  --color-line: #e2e7f0;
+  --color-line-soft: #eef1f6;
 
   /* Navy family (sampled #223641 plus derived steps) */
-  --color-navy-50: #eef3f5;
-  --color-navy-100: #dde6ea;
-  --color-navy-600: #3a5665;
-  --color-navy-700: #2e4653;
-  --color-navy-800: #223641;
-  --color-navy-900: #19282f;
-  --color-navy-950: #111c22;
+  --color-navy-50: #f1f4f9;
+  --color-navy-100: #e0e6f0;
+  --color-navy-600: #34466b;
+  --color-navy-700: #26365a;
+  --color-navy-800: #14213d;
+  --color-navy-900: #0f1930;
+  --color-navy-950: #0a1122;
 
-  /* Teal: the action colour, derived to sit between the navy and the mint */
-  --color-teal-50: #eaf8f4;
-  --color-teal-100: #d3f1e9;
-  --color-teal-200: #a8e3d4;
-  --color-teal-300: #72d0bc;
-  --color-teal-400: #37bba3;
-  --color-teal-500: #14a38c;
-  --color-teal-600: #0b8272;
-  --color-teal-700: #0a6b5f;
-  --color-teal-800: #0b5148;
+  /* "Teal" tokens now hold the slide blue: data, links and quiet emphasis */
+  --color-teal-50: #eef3fb;
+  --color-teal-100: #dce6f5;
+  --color-teal-200: #b9ccea;
+  --color-teal-300: #8faad8;
+  --color-teal-400: #5e82bf;
+  --color-teal-500: #3d63a6;
+  --color-teal-600: #2e4a7d;
+  --color-teal-700: #263e6a;
+  --color-teal-800: #1d3053;
 
-  --color-mint: #c4f1c9; /* sampled */
-  --color-mint-soft: #e6f8e8;
-  --color-mist: #b6cbd3; /* secondary text on navy, 7:1 */
+  --color-mint: #ecb424; /* the gold from the slides: the one accent */
+  --color-mint-soft: #fdf3d3;
+  --color-mist: #b9c3da; /* secondary text on navy, 7:1 */
 
   /* Patient-reported data and secondary series */
-  --color-violet-50: #f1f0fe;
-  --color-violet-100: #e5e2fc;
-  --color-violet-300: #b4acf2;
-  --color-violet-500: #7468e0;
-  --color-violet-600: #5b4fcf;
+  --color-violet-50: #eff2fb;
+  --color-violet-100: #e1e7f8;
+  --color-violet-300: #a9b8e6;
+  --color-violet-500: #6b82cf;
+  --color-violet-600: #4f66b8;
 
   /* Amber: review suggested */
   --color-amber-50: #fef6e4;
@@ -65,13 +67,13 @@
   --color-amber-500: #d98a10;
   --color-amber-700: #96580a;
 
-  /* Wine: priority review. #992335 and #711927 are sampled. */
-  --color-wine-50: #fbeff1;
-  --color-wine-100: #f5dce0;
-  --color-wine-300: #dc97a2;
-  --color-wine-500: #b93349;
-  --color-wine-600: #992335;
-  --color-wine-800: #711927;
+  /* "Wine" tokens now hold the slide red: same-day review and problems only */
+  --color-wine-50: #fbefee;
+  --color-wine-100: #f6dcda;
+  --color-wine-300: #e0a19e;
+  --color-wine-500: #c9544f;
+  --color-wine-600: #b8413c;
+  --color-wine-800: #8e2f2b;
 
   /* Green: no current review trigger */
   --color-green-50: #eaf7ee;
@@ -85,9 +87,9 @@
   --color-sand-600: #8a6a2c;
 
   --font-sans: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --color-floor: #f4f2ee; /* sampled: warm off-white */
-  --color-rule: #dbdad8; /* sampled: hairline */
-  --color-navy-rule: #3a4f5b; /* derived: hairline on navy */
+  --color-floor: #f4f6fa; /* sampled: warm off-white */
+  --color-rule: #dde3ec; /* sampled: hairline */
+  --color-navy-rule: #2c3b5e; /* derived: hairline on navy */
   --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
 
   --radius-field: 12px;
@@ -95,13 +97,13 @@
   --radius-tile: 16px;
   --radius-feature: 16px;
 
-  --shadow-card: 0 0 #0000;
-  --shadow-soft: 0 0 #0000;
-  --shadow-raised: 0 0 #0000;
-  --shadow-glow: 0 0 #0000;
-  --shadow-button: none;
-  --shadow-pop: 0 4px 10px rgb(34 54 65 / 0.08), 0 24px 60px -18px rgb(34 54 65 / 0.38);
-  --shadow-frame: 0 0 #0000;
+  --shadow-card: 0 1px 2px rgb(20 33 61 / 0.05), 0 12px 32px -16px rgb(20 33 61 / 0.2);
+  --shadow-soft: 0 1px 2px rgb(20 33 61 / 0.06), 0 6px 18px -10px rgb(20 33 61 / 0.18);
+  --shadow-raised: 0 2px 4px rgb(20 33 61 / 0.06), 0 20px 44px -20px rgb(20 33 61 / 0.3);
+  --shadow-glow: 0 0 0 6px rgb(236 180 36 / 0.2);
+  --shadow-button: 0 10px 20px -10px rgb(20 33 61 / 0.6);
+  --shadow-pop: 0 4px 10px rgb(20 33 61 / 0.08), 0 24px 60px -18px rgb(20 33 61 / 0.4);
+  --shadow-frame: 0 40px 90px -40px rgb(20 33 61 / 0.5);
 
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -170,11 +172,80 @@
 
 /* The one dark surface: UKMLA navy with a teal-lit corner. */
 .surface-deep {
-  background: #223641;
+  background: #14213d;
 }
 
+/* The immersive dark surface (test, exercise): navy, lit from one corner. */
 .surface-test {
-  background: #223641;
+  background:
+    radial-gradient(90% 55% at 100% 0%, rgb(61 99 166 / 0.38) 0%, rgb(61 99 166 / 0) 70%),
+    radial-gradient(80% 50% at 0% 100%, rgb(236 180 36 / 0.1) 0%, rgb(236 180 36 / 0) 70%),
+    #14213d;
+}
+
+/* The light ground: white, with a little gold and blue light for the glass to catch. */
+.ground {
+  background:
+    radial-gradient(70% 38% at 100% 0%, rgb(236 180 36 / 0.2) 0%, rgb(236 180 36 / 0) 70%),
+    radial-gradient(80% 44% at 0% 6%, rgb(61 99 166 / 0.2) 0%, rgb(61 99 166 / 0) 70%),
+    radial-gradient(70% 40% at 70% 100%, rgb(61 99 166 / 0.12) 0%, rgb(61 99 166 / 0) 70%),
+    #f4f6fa;
+}
+
+/* Home: navy behind the status bar and masthead, the light ground below it. */
+.ground-home {
+  background:
+    linear-gradient(180deg, #14213d 0, #14213d 150px, rgb(20 33 61 / 0) 150px),
+    radial-gradient(80% 44% at 0% 40%, rgb(61 99 166 / 0.16) 0%, rgb(61 99 166 / 0) 70%),
+    radial-gradient(70% 40% at 80% 100%, rgb(236 180 36 / 0.16) 0%, rgb(236 180 36 / 0) 70%),
+    #f4f6fa;
+}
+
+/* The same ground for wide pages, held still while the content scrolls. */
+.ground-wide {
+  background:
+    radial-gradient(46% 42% at 100% 0%, rgb(236 180 36 / 0.16) 0%, rgb(236 180 36 / 0) 70%),
+    radial-gradient(50% 50% at 18% 0%, rgb(61 99 166 / 0.16) 0%, rgb(61 99 166 / 0) 70%),
+    radial-gradient(50% 46% at 60% 100%, rgb(61 99 166 / 0.1) 0%, rgb(61 99 166 / 0) 70%),
+    #f4f6fa;
+  background-attachment: fixed;
+}
+
+/* Frosted glass. Light: cards, bars and sheets on the light ground. */
+.glass {
+  background: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgb(255 255 255 / 0.75);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgb(255 255 255 / 0.85);
+}
+
+/* A little more solid, for bars that sit over moving content. */
+.glass-bar {
+  background: rgb(255 255 255 / 0.82);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgb(255 255 255 / 0.8);
+  box-shadow: var(--shadow-raised), inset 0 1px 0 rgb(255 255 255 / 0.9);
+}
+
+/* Frosted glass on the navy surfaces. */
+.glass-dark {
+  background: rgb(255 255 255 / 0.08);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-bar {
+    background: rgb(255 255 255 / 0.96);
+  }
+  .glass-dark {
+    background: rgb(52 70 107 / 0.6);
+  }
 }
 
 .surface-rail {
@@ -183,19 +254,19 @@
 
 .btn-primary,
 .btn-navy {
-  background: #223641;
+  background: linear-gradient(180deg, #1c2c50 0%, #14213d 100%);
 }
 
 .btn-primary:hover,
 .btn-navy:hover {
-  background: #19282f;
+  background: #0f1930;
 }
 
 /* Diagonal hatch used wherever a value is simulated or missing. */
 .hatch {
   background-image: repeating-linear-gradient(
     135deg,
-    rgb(34 54 65 / 0.09) 0 1.5px,
+    rgb(20 33 61 / 0.09) 0 1.5px,
     transparent 1.5px 7px
   );
 }
@@ -315,16 +386,16 @@
 /* The demonstration has no camera picture, so the stage is lit from the middle instead. */
 .stage-demo {
   background:
-    radial-gradient(70% 55% at 50% 58%, rgb(58 86 101 / 0.85) 0%, rgb(34 54 65 / 0) 70%),
-    radial-gradient(120% 80% at 50% 110%, rgb(11 130 114 / 0.28) 0%, rgb(11 130 114 / 0) 60%),
-    #111c22;
+    radial-gradient(70% 55% at 50% 58%, rgb(52 70 107 / 0.9) 0%, rgb(20 33 61 / 0) 70%),
+    radial-gradient(120% 80% at 50% 110%, rgb(236 180 36 / 0.18) 0%, rgb(236 180 36 / 0) 60%),
+    #0a1122;
 }
 
 /* Over the camera picture: darker at the edges and at the bottom, where the words sit. */
 .stage-shade {
   background:
-    linear-gradient(180deg, rgb(17 28 34 / 0.38) 0%, rgb(17 28 34 / 0) 26%, rgb(17 28 34 / 0) 58%, rgb(17 28 34 / 0.62) 100%),
-    radial-gradient(120% 90% at 50% 45%, rgb(17 28 34 / 0) 55%, rgb(17 28 34 / 0.34) 100%);
+    linear-gradient(180deg, rgb(10 17 34 / 0.4) 0%, rgb(10 17 34 / 0) 26%, rgb(10 17 34 / 0) 58%, rgb(10 17 34 / 0.64) 100%),
+    radial-gradient(120% 90% at 50% 45%, rgb(10 17 34 / 0) 55%, rgb(10 17 34 / 0.36) 100%);
 }
 
 @keyframes sb-cue-in {
