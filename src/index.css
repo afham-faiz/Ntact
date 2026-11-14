@@ -1,0 +1,502 @@
+@import "tailwindcss";
+
+/*
+  Ntact design tokens, direction 2.
+
+  Direction 1 (ivory canvas, serif headline, flat navy panels, hairlines) was rejected in
+  review as flat. This system keeps the colours sampled from the UKMLA reference as the
+  identity (navy #223641, mint #C4F1C9, burgundy #992335) and applies them in the style
+  of the references supplied afterwards: layered white cards on a pale cool ground, soft
+  shadows, pastel tiles and gradient-filled charts. See docs/DESIGN.md.
+*/
+@theme {
+  --color-*: initial;
+
+  --color-white: #ffffff;
+  --color-black: #0b151a;
+
+  /* Ground and surfaces */
+  --color-canvas: #f2f5f6;
+  --color-canvas-deep: #e2e8eb;
+  --color-paper: #ffffff;
+
+  /* Text. Ink is the navy sampled from the UKMLA reference. */
+  --color-ink: #223641;
+  --color-ink-soft: #5a6a72;
+  --color-ink-faint: #94a1a7;
+  --color-line: #e1e7ea;
+  --color-line-soft: #edf1f3;
+
+  /* Navy family (sampled #223641 plus derived steps) */
+  --color-navy-50: #eef3f5;
+  --color-navy-100: #dde6ea;
+  --color-navy-600: #3a5665;
+  --color-navy-700: #2e4653;
+  --color-navy-800: #223641;
+  --color-navy-900: #19282f;
+  --color-navy-950: #111c22;
+
+  /* Teal: the action colour, derived to sit between the navy and the mint */
+  --color-teal-50: #eaf8f4;
+  --color-teal-100: #d3f1e9;
+  --color-teal-200: #a8e3d4;
+  --color-teal-300: #72d0bc;
+  --color-teal-400: #37bba3;
+  --color-teal-500: #14a38c;
+  --color-teal-600: #0b8272;
+  --color-teal-700: #0a6b5f;
+  --color-teal-800: #0b5148;
+
+  --color-mint: #c4f1c9; /* sampled */
+  --color-mint-soft: #e6f8e8;
+  --color-mist: #b6cbd3; /* secondary text on navy, 7:1 */
+
+  /* Patient-reported data and secondary series */
+  --color-violet-50: #f1f0fe;
+  --color-violet-100: #e5e2fc;
+  --color-violet-300: #b4acf2;
+  --color-violet-500: #7468e0;
+  --color-violet-600: #5b4fcf;
+
+  /* Amber: review suggested */
+  --color-amber-50: #fef6e4;
+  --color-amber-100: #fcebc4;
+  --color-amber-400: #f0a92e;
+  --color-amber-500: #d98a10;
+  --color-amber-700: #96580a;
+
+  /* Wine: priority review. #992335 and #711927 are sampled. */
+  --color-wine-50: #fbeff1;
+  --color-wine-100: #f5dce0;
+  --color-wine-300: #dc97a2;
+  --color-wine-500: #b93349;
+  --color-wine-600: #992335;
+  --color-wine-800: #711927;
+
+  /* Green: no current review trigger */
+  --color-green-50: #eaf7ee;
+  --color-green-100: #d2efda;
+  --color-green-500: #2f9e5b;
+  --color-green-700: #1f7443;
+
+  --color-sky-50: #eaf4fb;
+  --color-sky-600: #2a77b0;
+  --color-sand-50: #faf5ea;
+  --color-sand-600: #8a6a2c;
+
+  --font-sans: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-floor: #f4f2ee; /* sampled: warm off-white */
+  --color-rule: #dbdad8; /* sampled: hairline */
+  --color-navy-rule: #3a4f5b; /* derived: hairline on navy */
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+
+  --radius-field: 12px;
+  --radius-card: 16px;
+  --radius-tile: 16px;
+  --radius-feature: 16px;
+
+  --shadow-card: 0 0 #0000;
+  --shadow-soft: 0 0 #0000;
+  --shadow-raised: 0 0 #0000;
+  --shadow-glow: 0 0 #0000;
+  --shadow-button: none;
+  --shadow-pop: 0 4px 10px rgb(34 54 65 / 0.08), 0 24px 60px -18px rgb(34 54 65 / 0.38);
+  --shadow-frame: 0 0 #0000;
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button,
+  a,
+  summary,
+  label {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-teal-700);
+    outline-offset: 2px;
+  }
+
+  .on-dark :focus-visible,
+  .on-dark:focus-visible {
+    outline-color: var(--color-mint);
+  }
+
+  ::selection {
+    background: var(--color-teal-200);
+    color: var(--color-ink);
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+/* ---------- Surfaces ---------- */
+
+/* Patient ground: pale, slightly minted at the top so white cards lift off it. */
+.ground-patient {
+  background:
+    radial-gradient(120% 60% at 100% 0%, rgb(196 241 201 / 0.55) 0%, rgb(196 241 201 / 0) 60%),
+    radial-gradient(90% 50% at 0% 0%, rgb(211 241 233 / 0.7) 0%, rgb(211 241 233 / 0) 70%),
+    var(--color-canvas);
+}
+
+/* The one dark surface: UKMLA navy with a teal-lit corner. */
+.surface-deep {
+  background: #223641;
+}
+
+.surface-test {
+  background: #223641;
+}
+
+.surface-rail {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfc 100%);
+}
+
+.btn-primary,
+.btn-navy {
+  background: #223641;
+}
+
+.btn-primary:hover,
+.btn-navy:hover {
+  background: #19282f;
+}
+
+/* Diagonal hatch used wherever a value is simulated or missing. */
+.hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(34 54 65 / 0.09) 0 1.5px,
+    transparent 1.5px 7px
+  );
+}
+
+/* Direction 3: display type. Serif, large, tight. Carries the hierarchy on its own. */
+.serif {
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Large figures and screen titles. */
+.display {
+  letter-spacing: -0.025em;
+  font-weight: 650;
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes sb-screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sb-slide-right {
+  from {
+    opacity: 0.3;
+    left: 100%;
+  }
+  to {
+    left: 0;
+  }
+}
+
+@keyframes sb-slide-left {
+  from {
+    opacity: 0.3;
+    left: -100%;
+  }
+  to {
+    left: 0;
+  }
+}
+
+/* Tab changes: the new screen slides in from the side you moved towards. */
+.slide-from-right {
+  animation: sb-slide-right 260ms var(--ease-soft) backwards;
+}
+
+.slide-from-left {
+  animation: sb-slide-left 260ms var(--ease-soft) backwards;
+}
+
+.slide-from-right .screen-in,
+.slide-from-left .screen-in {
+  animation: none;
+}
+
+.screen-in {
+  animation: sb-screen-in 260ms var(--ease-soft) both;
+}
+
+/*
+  Ambient breathing used on the blinded test screen. The period (5.3 s) is deliberately
+  unrelated to the firmware's 1 s pulse cycle and 3 s level length, and it starts from page
+  mount rather than from any device event, so it cannot hint at timing or strength.
+*/
+@keyframes sb-breathe {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+.breathe {
+  animation: sb-breathe 5.3s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.breathe-late {
+  animation: sb-breathe 5.3s ease-in-out -2.1s infinite;
+  transform-origin: center;
+}
+
+.breathe-later {
+  animation: sb-breathe 5.3s ease-in-out -3.7s infinite;
+  transform-origin: center;
+}
+
+@keyframes sb-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.toast-in {
+  animation: sb-toast-in 200ms var(--ease-soft) both;
+}
+
+@keyframes sb-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dialog-in {
+  animation: sb-dialog-in 220ms var(--ease-soft) both;
+}
+
+@keyframes sb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: sb-spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .breathe,
+  .breathe-late,
+  .breathe-later {
+    animation: none;
+    opacity: 0.8;
+    transform: none;
+  }
+}
+
+/* ---------- Pain slider (native range, restyled) ---------- */
+
+.sb-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 48px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.sb-range::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-ink) 0 var(--fill, 0%),
+    var(--color-rule) var(--fill, 0%) 100%
+  );
+}
+
+.sb-range::-moz-range-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-rule);
+}
+
+.sb-range::-moz-range-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-ink);
+}
+
+.sb-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 34px;
+  height: 34px;
+  margin-top: -12px;
+  border-radius: 999px;
+  background: var(--color-paper);
+  border: 3px solid var(--color-ink);
+  box-shadow: none;
+}
+
+.sb-range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--color-paper);
+  border: 3px solid var(--color-ink);
+  box-shadow: none;
+}
+
+.sb-range[data-unset="true"]::-webkit-slider-runnable-track {
+  background: var(--color-rule);
+}
+
+.sb-range[data-unset="true"]::-webkit-slider-thumb {
+  border: 2px dashed var(--color-ink-faint);
+  background: var(--color-canvas);
+  box-shadow: none;
+}
+
+.sb-range[data-unset="true"]::-moz-range-thumb {
+  border: 2px dashed var(--color-ink-faint);
+  background: var(--color-canvas);
+  box-shadow: none;
+}
+
+.sb-range[data-unset="true"]::-moz-range-progress {
+  background: var(--color-rule);
+}
+
+.sb-range:focus-visible {
+  outline: none;
+}
+
+.sb-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-teal-700);
+  outline-offset: 3px;
+}
+
+.sb-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--color-teal-700);
+  outline-offset: 3px;
+}
+
+/* ---------- Date field ----------
+   iOS draws date inputs with its own width and a value box that ignores padding, which made
+   the field spill past the screen edge and its text sit off-centre. */
+.sb-date {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 56px;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0 16px;
+  line-height: 54px;
+  text-align: left;
+}
+
+.sb-date::-webkit-date-and-time-value {
+  margin: 0;
+  text-align: left;
+  line-height: 54px;
+}
+
+/* ---------- Scroll areas ---------- */
+
+.quiet-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Visually hidden but available to assistive tech. */
+.sr-only-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,10 @@
+node_modules
+dist
+*.local
+.vite
+coverage
+docs/screenshots/_tmp
+.gstack/
+
+.vercel
+.env*
