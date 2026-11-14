@@ -7,6 +7,9 @@ import {
   EXERCISES,
   OpenCloseTracker,
   RepTracker,
+  STREAK_MILESTONES,
+  physioStreak,
+  streakLine,
   READY_MS,
   bendDegrees,
   curlOf,
@@ -309,5 +312,90 @@ describe('the other exercises', () => {
         expect(text, exercise.id).not.toMatch(/fail|wrong|bad|poor|cannot|weak/i);
       }
     }
+  });
+});
+
+describe('the physio streak', () => {
+  const TODAY = '2026-11-14';
+  const day = (offset: number) => {
+    const date = new Date(2026, 10, 14 + offset, 12);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+  const done = (offset: number, reps = 10, patientId = 'p'): ExerciseSession => ({
+    id: `s-${patientId}-${offset}-${reps}`,
+    patientId,
+    timestamp: new Date(2026, 10, 14 + offset, 18).toISOString(),
+    exerciseId: 'open-close',
+    reps,
+    targetReps: 10,
+    completed: reps >= 10,
+    durationMs: 30_000,
+    site: { hand: 'right', finger: 'index' },
+    flexDeg: 150,
+    extDeg: 30,
+    rangeDeg: 120,
+    source: 'seed',
+    simulated: true,
+  });
+  const streak = (sessions: ExerciseSession[]) => physioStreak(sessions, 'p', TODAY);
+
+  it('is zero with nothing on record, and invites a start', () => {
+    const empty = streak([]);
+    expect(empty).toMatchObject({ current: 0, longest: 0, doneToday: false, reached: null });
+    expect(empty.next).toEqual({ days: 3, toGo: 3 });
+    expect(streakLine(empty)).toMatch(/start a streak/);
+  });
+
+  it('counts days in a row ending today', () => {
+    expect(streak([done(-2), done(-1), done(0)])).toMatchObject({ current: 3, doneToday: true, reached: 3 });
+  });
+
+  it('is not shown as broken while today can still be done', () => {
+    const waiting = streak([done(-3), done(-2), done(-1)]);
+    expect(waiting).toMatchObject({ current: 3, doneToday: false });
+    expect(streakLine(waiting)).toMatch(/keep it going/);
+  });
+
+  it('starts again after a missed day, without losing the longest run', () => {
+    const restarted = streak([done(-6), done(-5), done(-4), done(-3), done(-1), done(0)]);
+    expect(restarted).toMatchObject({ current: 2, longest: 4 });
+    const lapsed = streak([done(-6), done(-5), done(-4)]);
+    expect(lapsed).toMatchObject({ current: 0, longest: 3 });
+    expect(streakLine(lapsed)).toMatch(/new streak/);
+    expect(streakLine(lapsed)).not.toMatch(/lost|broke|missed|fail/i);
+  });
+
+  it('counts a day once however many exercises were done, and ignores sessions with nothing counted', () => {
+    expect(streak([done(0), { ...done(0), id: 'again', exerciseId: 'finger-slides' }]).current).toBe(1);
+    expect(streak([done(0, 0)]).current).toBe(0);
+  });
+
+  it('only counts this patient', () => {
+    expect(streak([done(0, 10, 'someone-else'), done(-1, 10, 'someone-else')]).current).toBe(0);
+  });
+
+  it('lays out the last seven days, oldest first, with today last', () => {
+    const { week } = streak([done(-6), done(-1), done(0)]);
+    expect(week.map((entry) => entry.date)).toEqual([-6, -5, -4, -3, -2, -1, 0].map(day));
+    expect(week.map((entry) => entry.done)).toEqual([true, false, false, false, false, true, true]);
+    expect(week[6].isToday).toBe(true);
+  });
+
+  it('names the next milestone and how far away it is', () => {
+    const five = streak([-4, -3, -2, -1, 0].map((offset) => done(offset)));
+    expect(five.next).toEqual({ days: 7, toGo: 2 });
+    expect(streakLine(five)).toBe('2 more days to reach 7 in a row.');
+    const six = streak([-5, -4, -3, -2, -1, 0].map((offset) => done(offset)));
+    expect(streakLine(six)).toBe('One more day to reach 7 in a row.');
+    const seven = streak([-6, -5, -4, -3, -2, -1, 0].map((offset) => done(offset)));
+    expect(seven.reached).toBe(7);
+    expect(streakLine(seven)).toMatch(/milestone/);
+  });
+
+  it('rewards days, never extra repetitions', () => {
+    const once = streak([done(0)]);
+    const many = streak([done(0), { ...done(0), id: 'b' }, { ...done(0), id: 'c' }, { ...done(0), id: 'd' }]);
+    expect(many.current).toBe(once.current);
+    expect(STREAK_MILESTONES.every((milestone) => Number.isInteger(milestone) && milestone >= 3)).toBe(true);
   });
 });

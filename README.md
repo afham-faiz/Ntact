@@ -93,11 +93,13 @@ The patient's "Physio" tab. The app tracks 21 points on the hand through the cam
 
 | Exercise | What it is | Unlocked |
 | --- | --- | --- |
-| Finger slides | Hand flat on the table; slide the fingertips back towards the palm so the knuckles lift | By default |
 | Open and close | A gentle fist, then fingers stretched wide. The movement trend is read from this one | By default |
+| Finger slides | Hand flat on the table; slide the fingertips back towards the palm so the knuckles lift | By default |
 | Putty squeeze | Squeeze therapy putty or a soft ball, then let go | Only when a clinician unlocks it, on the patient record |
 
 The day's physio counts as done when every unlocked exercise has been done.
+
+**Streak.** The Physio screen shows how many days in a row physio has been done, with the last seven days as a row of ticks, the longest run, and the next milestone (3, 7, 14, 30, 60, 100 days). A flame with the count also sits on the Today list and on the end-of-session summary, and the clinician record shows the current and longest streak. A day counts when at least one exercise was done; it rewards turning up, never extra repetitions. Until today's physio is done the streak is counted up to yesterday, and a missed day is never worded as a failure.
 
 - **Finger slides needs the camera pointed at the table.** A hand lying flat is a harder view for hand tracking than a raised palm, and none of the three has been tried with a real hand yet.
 
@@ -161,7 +163,7 @@ src/demo/       seed data (nine fictional patients) and the localStorage store
 src/app/        React providers: device status, test session
 src/components/ shared UI and charts
 src/features/   patient, clinician, demo screens
-tests/          382 tests: domain, store, simulated device, Bluetooth adapter, device and test-session
+tests/          402 tests: domain, store, simulated device, Bluetooth adapter, device and test-session
                 providers end to end, the exercise engine, and the care model (routing, follow-up, weekly)
 ```
 

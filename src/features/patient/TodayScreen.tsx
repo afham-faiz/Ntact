@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CaretRight, CheckCircle, ClipboardText, Fingerprint, HandPalm, HandTap, type Icon } from '@phosphor-icons/react';
+import { CaretRight, CheckCircle, ClipboardText, Fingerprint, Fire, HandPalm, HandTap, type Icon } from '@phosphor-icons/react';
 import { assistStateOf, useDevice, type AssistState } from '../../app/DeviceContext';
 import { useActivePatient, useDemoState, useNow } from '../../app/hooks';
 import { cx } from '../../components/ui';
 import { painOf, weeklyDue, weeklyForPatient } from '../../domain/checkIn';
 import { formatDayLong, greetingFor, toDateKey } from '../../domain/dates';
-import { physioToday } from '../../domain/exercise';
+import { physioStreak, physioToday } from '../../domain/exercise';
 import { homeLine } from '../../domain/patientMessages';
 import { checkInOn, checkInsForPatient, primaryTestOfDay, testsForPatient, testsOnDay } from '../../domain/selectors';
 import { RESULT_RULES, triageSummaries } from '../../domain/triage';
@@ -51,6 +51,7 @@ export function TodayScreen() {
   const physio = physioToday(state.exerciseSessions ?? [], state.exercisePlans, patient.id, today);
   // With nothing unlocked there is nothing to do, so it does not hold the day up.
   const exercised = physio.allDone || physio.unlocked.length === 0;
+  const streak = physioStreak(state.exerciseSessions ?? [], patient.id, today);
   const weeklyIsDue = weeklyDue(weeklyForPatient(state.weeklyCheckIns ?? [], patient.id), today);
   const assist = assistStateOf(device);
 
@@ -152,6 +153,18 @@ export function TodayScreen() {
                     <span className="block text-[17.5px] font-bold leading-6 tracking-[-0.015em]">{task.title}</span>
                     <span className={cx('block text-[14.5px] leading-5', isNext ? 'text-mist' : 'text-ink-soft')}>{task.line}</span>
                   </span>
+                  {task.key === 'exercise' && streak.current > 0 ? (
+                    <span
+                      className={cx(
+                        'nums inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[13.5px] font-bold leading-4',
+                        isNext ? 'bg-white/10 text-white' : 'bg-mint-soft text-ink',
+                      )}
+                      aria-label={`${streak.current}-day physio streak`}
+                    >
+                      <Fire size={16} weight="fill" className={isNext ? 'text-mint' : 'text-amber-500'} aria-hidden="true" />
+                      {streak.current}
+                    </span>
+                  ) : null}
                   {isNext ? (
                     <span className="shrink-0 rounded-full bg-mint px-4 py-2 text-[14.5px] font-bold leading-5 text-ink">Start</span>
                   ) : (

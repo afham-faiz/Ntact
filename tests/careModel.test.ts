@@ -111,16 +111,16 @@ describe('exercise records', () => {
 describe('decisions kept for the clinician', () => {
   it('gives every patient the two phase 1 exercises, and keeps the putty squeeze locked, until a clinician changes the plan', () => {
     const store = freshStore();
-    expect(EXERCISE_ORDER).toEqual(['finger-slides', 'open-close', 'putty-squeeze']);
-    expect(DEFAULT_UNLOCKED).toEqual(['finger-slides', 'open-close']);
+    expect(EXERCISE_ORDER).toEqual(['open-close', 'finger-slides', 'putty-squeeze']);
+    expect(DEFAULT_UNLOCKED).toEqual(['open-close', 'finger-slides']);
     expect(EXERCISES['putty-squeeze']).toMatchObject({ phase: 2, unlockedByDefault: false });
-    expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual(['finger-slides', 'open-close']);
+    expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual(['open-close', 'finger-slides']);
 
     // The clinician unlocks the later-stage exercise for one patient.
     store.setExercisePlan('p-maya', ['putty-squeeze', 'finger-slides', 'open-close']);
-    expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual(['finger-slides', 'open-close', 'putty-squeeze']);
+    expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual(['open-close', 'finger-slides', 'putty-squeeze']);
     // Nobody else's plan moved.
-    expect(unlockedExercises(store.getState().exercisePlans, 'p-noor')).toEqual(['finger-slides', 'open-close']);
+    expect(unlockedExercises(store.getState().exercisePlans, 'p-noor')).toEqual(['open-close', 'finger-slides']);
 
     store.setExercisePlan('p-maya', []);
     expect(unlockedExercises(store.getState().exercisePlans, 'p-maya')).toEqual([]);
@@ -136,7 +136,7 @@ describe('decisions kept for the clinician', () => {
     store.recordExercise('p-maya', 'open-close', result, 'camera', site, FIXED_NOW);
     expect(today()).toMatchObject({ done: ['open-close'], allDone: false });
     store.recordExercise('p-maya', 'finger-slides', result, 'camera', site, FIXED_NOW);
-    expect(today()).toMatchObject({ done: ['finger-slides', 'open-close'], allDone: true });
+    expect(today()).toMatchObject({ done: ['open-close', 'finger-slides'], allDone: true });
 
     // Unlocking the third exercise makes the day incomplete again.
     store.setExercisePlan('p-maya', ['finger-slides', 'open-close', 'putty-squeeze']);

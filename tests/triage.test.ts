@@ -120,13 +120,13 @@ describe('flag wording', () => {
   /** The seeded cohort, a hand-raised flag and both exercise rules, so every rule id is represented. */
   function everyFlag(): TriageFlag[] {
     const state = seeded();
-    // Maya stops exercising for three days; Noor's estimated range falls across her last six sessions.
+    // Maya stops exercising for three days; Noor's estimated range falls across her last six open-and-close sessions.
     const cutoff = daysFromToday(-3);
     state.exerciseSessions = state.exerciseSessions.filter(
       (session) => session.patientId !== 'p-maya' || dateKeyOf(session.timestamp) < cutoff,
     );
     state.exerciseSessions
-      .filter((session) => session.patientId === 'p-noor')
+      .filter((session) => session.patientId === 'p-noor' && session.exerciseId === 'open-close')
       .slice(-6)
       .forEach((session, index) => {
         session.rangeDeg = index < 3 ? 150 : 112;

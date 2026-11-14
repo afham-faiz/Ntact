@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { CaretRight, CheckCircle, LockSimple, X } from '@phosphor-icons/react';
+import { CaretRight, Check, CheckCircle, Fire, LockSimple, X } from '@phosphor-icons/react';
 import { useActivePatient, useDemoState, useToday } from '../../app/hooks';
 import { Button, ButtonLink, Card, Explainer, Spinner, cx } from '../../components/ui';
 import { demoStore } from '../../demo/store';
-import { dateKeyOf, lastDays, relativeDay } from '../../domain/dates';
+import { dateKeyOf, fromDateKey, lastDays, relativeDay } from '../../domain/dates';
 import {
   EXERCISES,
   EXERCISE_ORDER,
@@ -13,14 +13,17 @@ import {
   TREND_EXERCISE,
   isExerciseId,
   patientSummaryLine,
+  physioStreak,
   physioToday,
   previousMeasured,
   sessionsForPatient,
+  streakLine,
   trendSessions,
   unlockedExercises,
   type CuePhase,
   type ExerciseDefinition,
   type FingerValues,
+  type PhysioStreak,
   type SessionResult,
 } from '../../domain/exercise';
 import type { ExerciseId, ExerciseSession, Finger, TestSite } from '../../domain/types';
@@ -69,6 +72,64 @@ function RangeTrend({ sessions }: { sessions: ExerciseSession[] }) {
   );
 }
 
+const WEEKDAY_LETTER = new Intl.DateTimeFormat('en-GB', { weekday: 'narrow' });
+
+/**
+ * The streak: days in a row with physio done, and the week at a glance.
+ * It counts days, never repetitions, so there is nothing to gain from overdoing it,
+ * and a missed day is never shown as a failure: the count simply starts again.
+ */
+function StreakCard({ streak }: { streak: PhysioStreak }) {
+  const lit = streak.current > 0;
+  return (
+    <Card className="mt-4 px-5 py-4">
+      <div className="flex items-center gap-4">
+        <span
+          className={cx(
+            'grid size-14 shrink-0 place-items-center rounded-full',
+            lit ? 'bg-mint text-ink shadow-glow' : 'bg-navy-50 text-ink-faint',
+            streak.doneToday && 'pop-in',
+          )}
+        >
+          <Fire size={30} weight={lit ? 'fill' : 'regular'} aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="display nums text-[30px] leading-9 text-ink">
+            {streak.current}
+            <span className="ml-1.5 text-[16px] font-bold tracking-[-0.01em]">day streak</span>
+          </p>
+          <p className="text-[14px] leading-5 text-ink-soft">{streakLine(streak)}</p>
+        </div>
+        {streak.longest > streak.current ? (
+          <p className="shrink-0 text-right text-[12.5px] leading-4 text-ink-soft">
+            Best
+            <span className="nums block text-[15px] font-bold leading-5 text-ink">{streak.longest}</span>
+          </p>
+        ) : null}
+      </div>
+
+      <ol className="mt-4 grid grid-cols-7 gap-1.5" aria-label="The last seven days">
+        {streak.week.map((entry) => (
+          <li key={entry.date} className="flex flex-col items-center gap-1.5">
+            <span
+              className={cx(
+                'grid size-9 place-items-center rounded-full',
+                entry.done ? 'bg-ink text-mint' : entry.isToday ? 'border-2 border-dashed border-mint text-ink-faint' : 'bg-navy-50 text-ink-faint',
+              )}
+            >
+              {entry.done ? <Check size={17} weight="bold" aria-hidden="true" /> : null}
+              <span className="sr-only-live">{entry.done ? 'Done' : entry.isToday ? 'Not done yet' : 'Not done'}</span>
+            </span>
+            <span className={cx('text-[11.5px] leading-4', entry.isToday ? 'font-bold text-ink' : 'font-medium text-ink-soft')}>
+              {entry.isToday ? 'Today' : WEEKDAY_LETTER.format(fromDateKey(entry.date))}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
 export function ExerciseHome() {
   const patient = useActivePatient();
   const state = useDemoState();
@@ -78,6 +139,7 @@ export function ExerciseHome() {
   const week = lastDays(today, 7);
   const daysDone = week.filter((day) => sessions.some((session) => session.reps > 0 && dateKeyOf(session.timestamp) === day)).length;
   const latest = previousMeasured(sessions, undefined, TREND_EXERCISE);
+  const streak = physioStreak(state.exerciseSessions ?? [], patient.id, today);
 
   return (
     <Screen header={<TopBar title="Physio" />}>
@@ -88,6 +150,8 @@ export function ExerciseHome() {
             ? 'All done for today. Your camera followed your fingers and counted for you.'
             : `${done.length} of ${unlocked.length} done today. Your camera follows your fingers and counts for you.`}
       </p>
+
+      {unlocked.length > 0 ? <StreakCard streak={streak} /> : null}
 
       <ul className="mt-4 space-y-3">
         {EXERCISE_ORDER.map((id, index) => {
@@ -329,16 +393,19 @@ function formatDuration(ms: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-function Summary({
+export function Summary({
   exercise,
   result,
   previous,
   demo,
   site,
   nextId,
+  streak,
   onAgain,
 }: {
   exercise: ExerciseDefinition;
+  /** The streak as it stands after this session. */
+  streak: PhysioStreak;
   result: SessionResult;
   previous: ExerciseSession | null;
   demo: boolean;
@@ -376,6 +443,20 @@ function Summary({
             </div>
           ))}
         </dl>
+      ) : null}
+
+      {counted && streak.current > 0 ? (
+        <div className="glass-dark mt-3 flex items-center gap-3.5 rounded-[18px] px-4 py-3" role="status">
+          <span className="pop-in grid size-11 shrink-0 place-items-center rounded-full bg-mint text-ink">
+            <Fire size={24} weight="fill" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="nums block text-[16.5px] font-bold leading-6 text-white">
+              {streak.current}-day streak
+            </span>
+            <span className="block text-[13.5px] leading-5 text-mist">{streakLine(streak)}</span>
+          </span>
+        </div>
       ) : null}
 
       <p className="mt-5 text-center text-[13px] leading-5 text-mist">
@@ -424,7 +505,7 @@ function LiveSession({ exercise }: { exercise: ExerciseDefinition }) {
   const [status, setStatus] = useState<'starting' | 'live' | 'error' | 'summary'>('starting');
   const [failure, setFailure] = useState<CameraFailure | null>(null);
   const [view, setView] = useState<LiveView>(EMPTY_VIEW);
-  const [outcome, setOutcome] = useState<{ result: SessionResult; previous: ExerciseSession | null; nextId: ExerciseId | null } | null>(null);
+  const [outcome, setOutcome] = useState<{ result: SessionResult; previous: ExerciseSession | null; nextId: ExerciseId | null; streak: PhysioStreak } | null>(null);
   /** Bumped to start a fresh session without leaving the screen. */
   const [attempt, setAttempt] = useState(0);
 
@@ -460,8 +541,9 @@ function LiveSession({ exercise }: { exercise: ExerciseDefinition }) {
       const today = dateKeyOf(new Date().toISOString());
       const plan = physioToday(after.exerciseSessions ?? [], after.exercisePlans, subject.current.patientId, today);
       const nextId = plan.unlocked.find((id) => !plan.done.includes(id)) ?? null;
+      const streak = physioStreak(after.exerciseSessions ?? [], subject.current.patientId, today);
       if (!cancelled) {
-        setOutcome({ result, previous, nextId });
+        setOutcome({ result, previous, nextId, streak });
         setStatus('summary');
       }
     };
@@ -534,12 +616,17 @@ function LiveSession({ exercise }: { exercise: ExerciseDefinition }) {
 
     if (camera) {
       const video = videoRef.current;
-      if (!video) return;
-      camera.start(video).then(begin, (error: unknown) => {
-        if (cancelled) return;
-        setFailure(error instanceof CameraError ? error.reason : 'failed');
+      if (video) {
+        camera.start(video).then(begin, (error: unknown) => {
+          if (cancelled) return;
+          setFailure(error instanceof CameraError ? error.reason : 'failed');
+          setStatus('error');
+        });
+      } else {
+        // No picture element to show the camera in. Say so rather than waiting for ever.
+        setFailure('failed');
         setStatus('error');
-      });
+      }
     } else {
       begin();
     }
@@ -552,7 +639,15 @@ function LiveSession({ exercise }: { exercise: ExerciseDefinition }) {
     };
   }, [demo, injured, attempt, exercise]);
 
-  const again = useCallback(() => setAttempt((value) => value + 1), []);
+  const again = useCallback(() => {
+    // Leave the summary first, so the live screen (and its video element) is back on the
+    // page by the time the new session asks for the camera.
+    setOutcome(null);
+    setFailure(null);
+    setView(EMPTY_VIEW);
+    setStatus('starting');
+    setAttempt((value) => value + 1);
+  }, []);
 
   if (status === 'summary' && outcome) {
     return (
@@ -563,6 +658,7 @@ function LiveSession({ exercise }: { exercise: ExerciseDefinition }) {
         demo={demo}
         site={subject.current.site}
         nextId={outcome.nextId}
+        streak={outcome.streak}
         onAgain={again}
       />
     );

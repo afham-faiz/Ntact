@@ -112,9 +112,9 @@ export function seedExerciseSessions(patients: Patient[], anchor: DateKey): Exer
       const progress = days.length > 1 ? index / (days.length - 1) : 1;
       const wobble = (chance(patient.id, day, 'wobble') - 0.5) * 10;
       const range = from + (to - from) * progress + wobble;
-      // Finger slides first, then open and close a few minutes later. A slide bends the finger less than a fist.
-      sessions.push(makeExerciseSession(patient, day, range * 0.58, 'seed', { exerciseId: 'finger-slides', hour: 18, minute: 50 }));
+      // Open and close first, then finger slides a few minutes later. A slide bends the finger less than a fist.
       sessions.push(makeExerciseSession(patient, day, range));
+      sessions.push(makeExerciseSession(patient, day, range * 0.58, 'seed', { exerciseId: 'finger-slides', hour: 19, minute: 52 }));
     });
   }
   return sessions.sort((a, b) => a.timestamp.localeCompare(b.timestamp));

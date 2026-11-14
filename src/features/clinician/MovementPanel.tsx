@@ -8,7 +8,14 @@ import { Button, Panel, cx } from '../../components/ui';
 import { demoStore } from '../../demo/store';
 import { dateKeyOf, formatDay, formatDayShort, formatTime, lastDays, type DateKey } from '../../domain/dates';
 import { SEVERITY_LABEL, WEEKLY_QUESTIONS, weeklyDue, weeklyForPatient } from '../../domain/checkIn';
-import { EXERCISES, EXERCISE_ORDER, sessionsForPatient, trendSessions, unlockedExercises } from '../../domain/exercise';
+import {
+  EXERCISES,
+  EXERCISE_ORDER,
+  physioStreak,
+  sessionsForPatient,
+  trendSessions,
+  unlockedExercises,
+} from '../../domain/exercise';
 import type { DemoState, ExerciseSession, Patient, TriageLevel } from '../../domain/types';
 import { fingerName } from './parts';
 
@@ -67,6 +74,7 @@ export function MovementPanel({ patient, state, today }: { patient: Patient; sta
   const done28 = daysWithSession(sessions, lastDays(today, 28));
   const recent = [...sessions].reverse().slice(0, 6);
   const camera = sessions.filter((session) => !session.simulated).length;
+  const streak = physioStreak(sessions, patient.id, today);
 
   return (
     <Panel>
@@ -90,6 +98,13 @@ export function MovementPanel({ patient, state, today }: { patient: Patient; sta
           <div className="flex items-baseline justify-between gap-4 py-2">
             <span className="text-[13.5px] leading-5 text-ink-soft">Exercise days, last 28</span>
             <span className="nums text-[14.5px] font-bold leading-5 text-ink">{done28} of 28</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4 py-2">
+            <span className="text-[13.5px] leading-5 text-ink-soft">Current streak, days in a row</span>
+            <span className="nums text-[14.5px] font-bold leading-5 text-ink">
+              {streak.current}
+              <span className="font-normal text-ink-soft"> (longest {streak.longest})</span>
+            </span>
           </div>
         </div>
 

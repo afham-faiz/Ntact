@@ -409,6 +409,25 @@
   }
 }
 
+/* A small spring when something is earned: the streak flame. */
+@keyframes sb-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.pop-in {
+  animation: sb-pop 520ms var(--ease-soft) both;
+}
+
 .cue-in {
   animation: sb-cue-in 240ms var(--ease-soft) both;
 }

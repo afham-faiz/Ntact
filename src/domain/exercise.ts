@@ -11,7 +11,7 @@
  * figures are useful for guidance and for a trend over weeks. They are not
  * goniometry and are never presented as a clinical measurement.
  */
-import { dateKeyOf, type DateKey } from './dates';
+import { addDays, dateKeyOf, lastDays, type DateKey } from './dates';
 import type { ExerciseId, ExerciseSession, Finger } from './types';
 
 export interface Point3 {
@@ -156,7 +156,7 @@ export const EXERCISES: Record<ExerciseId, ExerciseDefinition> = {
 };
 
 /** The order the exercises are listed and done in. */
-export const EXERCISE_ORDER: readonly ExerciseId[] = ['finger-slides', 'open-close', 'putty-squeeze'];
+export const EXERCISE_ORDER: readonly ExerciseId[] = ['open-close', 'finger-slides', 'putty-squeeze'];
 
 export function isExerciseId(value: string | undefined): value is ExerciseId {
   return value !== undefined && (EXERCISE_ORDER as readonly string[]).includes(value);
@@ -617,6 +617,79 @@ export function physioToday(
   );
   const done = unlocked.filter((id) => doneIds.has(id));
   return { unlocked, done, allDone: unlocked.length > 0 && done.length === unlocked.length };
+}
+
+// ---------- The streak ----------
+
+/** Streak lengths worth marking. Days, not repetitions: the reward is for turning up, never for doing more. */
+export const STREAK_MILESTONES: readonly number[] = [3, 7, 14, 30, 60, 100];
+
+export interface PhysioStreak {
+  /** Days in a row with physio done, ending today, or yesterday if today is not done yet. */
+  current: number;
+  /** The longest run on record. */
+  longest: number;
+  doneToday: boolean;
+  /** The last seven days, oldest first. */
+  week: { date: DateKey; done: boolean; isToday: boolean }[];
+  /** The next milestone not yet reached, and how many more days it takes. null past the last one. */
+  next: { days: number; toGo: number } | null;
+  /** Set when `current` is exactly a milestone. */
+  reached: number | null;
+}
+
+/**
+ * A day counts when at least one exercise was done on it. It is deliberately not
+ * "every unlocked exercise": the plan changes when a clinician unlocks something,
+ * and a day already earned must never be taken back. Finishing all of them is what
+ * the Today list is for.
+ *
+ * Until today's physio is done the streak is counted up to yesterday, so it is never
+ * shown as broken while there is still time to keep it.
+ */
+export function physioStreak(sessions: ExerciseSession[], patientId: string, today: DateKey): PhysioStreak {
+  const days = new Set(
+    sessions.filter((session) => session.patientId === patientId && session.reps > 0).map((session) => dateKeyOf(session.timestamp)),
+  );
+  const doneToday = days.has(today);
+
+  let current = 0;
+  for (let day = doneToday ? today : addDays(today, -1); days.has(day); day = addDays(day, -1)) current += 1;
+
+  let longest = 0;
+  let run = 0;
+  let previous: DateKey | null = null;
+  for (const day of [...days].sort()) {
+    if (day > today) break;
+    run = previous !== null && addDays(previous, 1) === day ? run + 1 : 1;
+    longest = Math.max(longest, run);
+    previous = day;
+  }
+
+  const nextDays = STREAK_MILESTONES.find((milestone) => milestone > current);
+  return {
+    current,
+    longest: Math.max(longest, current),
+    doneToday,
+    week: lastDays(today, 7).map((date) => ({ date, done: days.has(date), isToday: date === today })),
+    next: nextDays === undefined ? null : { days: nextDays, toGo: nextDays - current },
+    reached: STREAK_MILESTONES.includes(current) ? current : null,
+  };
+}
+
+/** One encouraging line about the streak. Never a telling-off for a missed day. */
+export function streakLine(streak: PhysioStreak): string {
+  if (streak.current === 0) {
+    return streak.longest > 0 ? 'A new streak starts with today’s physio.' : 'Do today’s physio to start a streak.';
+  }
+  if (!streak.doneToday) return 'Do today’s physio to keep it going.';
+  if (streak.reached !== null) return `${streak.reached} days in a row. That is a milestone.`;
+  if (streak.next) {
+    return streak.next.toGo === 1
+      ? `One more day to reach ${streak.next.days} in a row.`
+      : `${streak.next.toGo} more days to reach ${streak.next.days} in a row.`;
+  }
+  return 'Keep it going tomorrow.';
 }
 
 /** What a patient reads after a session. Always encouraging; a clinician delivers anything else. */
