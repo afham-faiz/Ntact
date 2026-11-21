@@ -72,6 +72,28 @@ Radii: 14 to 16 px for panels and large buttons, 10 to 12 px for inputs and smal
 - `prefers-reduced-motion` removes the ambient animation and transitions.
 - The ambient rings on the test screen run on a fixed 5.3 s loop unrelated to the firmware's timing, so they cannot hint at the level.
 
+## Movement assessment and demonstration screens (21 November 2026, third pass)
+
+These screens have been through three looks. The first was navy with translucent blue panels throughout, rejected in review as "all blue". The second was white with hairline rules and no cards, rejected as "too minimalist". They now look like the rest of the patient app, which is the look that was asked for.
+
+- **Same surfaces as the patient app.** The softly lit ground (`ground`, `ground-wide`), frosted white cards (`glass`, 22 to 26 px corners, soft shadow), navy `ink` text, `ink-soft` secondary text, the navy primary button. No separate palette: the neutral `graphite` and `stone` tokens of the second pass have been removed.
+- **One dark surface.** The camera picture (`navy-950`). Everything laid over it is a white chip with ink text, so it reads in any room.
+- **Gold is the accent.** `mint #ECB424`, for the thing to look at: the assessed digit on the skeleton, the needle on a dial, the hold ring, the active step, the "hold it there" banner. Blue (`teal-600` on `teal-50`) numbers the steps of a sequence and tags the camera view.
+- **Protractor dials.** Each joint's estimate is drawn on a half-circle scale from 20° of extension to 120° of flexion, the arc filled from zero to the estimate. A solid arc is a joint seen across the picture, a dotted arc is depth-inferred, no arc is not seen. The same three states are used in the overlay on the hand and in every table.
+- **The hand is the app's hand.** Instructional figures are drawn in the style of `components/HandIllustration.tsx`: white with a navy line, a broad square palm with rounded corners, chunky fingers that nearly touch, a short thick thumb leaving the palm low on its side at about fifty degrees, a forearm open at the bottom, two faint palm creases, one continuous outline. An assessed digit wears a gold fingertip sleeve, as it does there. Two earlier attempts at the thumb (a long thin one, then one joined to the palm by a web of skin) were both rejected; the answer was to copy the illustration's proportions rather than adjust an anatomical hand, and then to give the thumb visible joints. Because the figure has to move and be seen side-on, it is built from landmarks rather than fixed shapes:
+  - the kinematic model (`tracking/handModel.ts`) now has the illustration's proportions, at 0.705 mm to one of its units: knuckles in a level row 29 units apart, fingers 100, 120, 108 and 76 units long, the thumb's two visible bones 57 units;
+  - `features/movement/handArt.ts` paints the whole hand as one silhouette (every outline, then every fill), so there are no seams between fingers, thumb, palm and forearm;
+  - only a fingertip that has folded back over its own finger, or a thumb that has crossed in front of the palm, is drawn on top with a line of its own;
+  - palm-on views are drawn square to the viewer with no perspective; side views are turned 85°, the nearest finger in front of the other three;
+  - every digit is drawn bone by bone through the landmarks the tracker reports, the thumb included (base, knuckle, last joint, tip), with a faint crease at each joint, so the drawing bends exactly where the tracked skeleton bends. An earlier version drew the thumb as one smooth capsule and was rejected: "the thumb has no joints and is not moving according to the way we are hand tracking";
+  - in a fist the thumb folds at its knuckle and last joint across the front of the palm, just below the curled fingertips. Below them, not over them: a thumb laid across the fingers would hide, in the synthetic replay, the joints it is demonstrating.
+- **The movement is animated** (start, move, hold, return) wherever it is explained: the patient's intro, the camera setup card, beside the live picture following the stage the session has reached, and in the help sheet. With reduced motion on, the start and target are shown side by side instead.
+- **One screen, three shapes.** The live screen lays itself out from its own width (container queries): picture above read-out on a phone, picture beside read-out when wide, and a compact read-out when the screen is short (the `short:` variant).
+- **`frame:` replaces `sm:` in the patient app.** The phone mock-up appears only when the window is at least 640 px wide *and* 608 px tall, so a phone turned on its side keeps the full-screen app.
+- **Three kinds of data, three marks.** Camera: filled point, solid line, solid tag. Illustrative: hollow point, dashed line, dashed tag. Synthetic replay: hollow square, gold tag.
+- **Feedback banner tones.** Dark: guidance. White: do this now. Gold: good, or hold. Amber: caution.
+- **Checked at:** 375 × 812 and 1366 × 768, as still screens. The animated replay could not be watched at full speed in the development browser on this pass. Not checked on a physical phone.
+
 ## Not yet checked
 
 Only 390 px (patient) and 1440 px (clinician) have been looked at in screenshots. 375, 430, 768 and 1280 px, keyboard-only use and a contrast audit are still to do.

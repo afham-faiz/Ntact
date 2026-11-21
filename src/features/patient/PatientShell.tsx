@@ -14,8 +14,8 @@ import { linkSummary } from './deviceCopy';
 function useImmersive(): boolean {
   const { phase } = useTestSession();
   const location = useLocation();
-  // A guided exercise fills the screen: the camera picture needs the room.
-  if (/^\/patient\/exercise\/[^/]+\/live/.test(location.pathname)) return true;
+  // A guided exercise or a movement assessment fills the screen: the camera picture needs the room.
+  if (/^\/patient\/(exercise|movement)\/[^/]+\/live/.test(location.pathname)) return true;
   // While a test is running the chrome goes away: nothing should be easy to hit by accident.
   return location.pathname.startsWith('/patient/test') && isActivePhase(phase) && phase.name !== 'arming';
 }
@@ -24,7 +24,7 @@ function useImmersive(): boolean {
 function StatusBar({ dark }: { dark: boolean }) {
   const colour = dark ? 'text-white' : 'text-ink';
   return (
-    <div className={cx('relative hidden h-[46px] shrink-0 items-center justify-between px-8 pt-1.5 sm:flex', colour)} aria-hidden="true">
+    <div className={cx('relative hidden h-[46px] shrink-0 items-center justify-between px-8 pt-1.5 frame:flex', colour)} aria-hidden="true">
       <span className="text-[15px] font-bold tracking-[-0.01em]">9:41</span>
       <span className="absolute left-1/2 top-[9px] h-[29px] w-[104px] -translate-x-1/2 rounded-full bg-black" />
       <span className="flex items-center gap-1.5">
@@ -50,22 +50,24 @@ function StatusBar({ dark }: { dark: boolean }) {
 }
 
 function PhoneScreen() {
-  const immersive = useImmersive();
   const location = useLocation();
+  // A movement assessment sits on the app's light ground, with a dark camera picture; the other full-screen sessions are navy.
+  const light = /^\/patient\/movement\/[^/]+\/live/.test(location.pathname);
+  const immersive = useImmersive() && !light;
   // The home screen opens on a navy masthead, so the top of the phone is navy there.
   const home = location.pathname === '/patient' || location.pathname === '/patient/';
   return (
     <div
       className={cx(
-        'relative flex min-h-dvh w-full flex-col sm:h-full sm:min-h-0 sm:overflow-hidden sm:rounded-[46px]',
-        immersive ? 'surface-test' : home ? 'ground-home' : 'ground',
+        'relative flex min-h-dvh w-full flex-col frame:h-full frame:min-h-0 frame:overflow-hidden frame:rounded-[46px]',
+        light ? 'ground' : immersive ? 'surface-test' : home ? 'ground-home' : 'ground',
       )}
     >
       <StatusBar dark={immersive || home} />
       <Outlet />
       <span
         className={cx(
-          'pointer-events-none absolute bottom-[7px] left-1/2 hidden h-[5px] w-[130px] -translate-x-1/2 rounded-full sm:block',
+          'pointer-events-none absolute bottom-[7px] left-1/2 hidden h-[5px] w-[130px] -translate-x-1/2 rounded-full frame:block',
           immersive ? 'bg-white/60' : 'bg-ink/80',
         )}
         aria-hidden="true"
@@ -107,7 +109,7 @@ export function PatientFrame() {
   return (
     <TestSessionProvider>
       <ScrollMemory />
-      <div className="ground-wide min-h-dvh sm:grid sm:place-items-center sm:px-6 sm:py-5 lg:grid-cols-[1fr_auto_1fr] lg:gap-14">
+      <div className="ground-wide min-h-dvh frame:grid frame:place-items-center frame:px-6 frame:py-5 lg:grid-cols-[1fr_auto_1fr] lg:gap-14">
         <aside className="hidden max-w-[260px] justify-self-end lg:block">
           <Wordmark />
           <p className="mt-7 text-[22px] font-bold leading-7 tracking-[-0.02em] text-ink">Patient app</p>
@@ -140,7 +142,7 @@ export function PatientFrame() {
           <ConceptNote className="mt-6" />
         </aside>
 
-        <div className="relative min-h-dvh w-full sm:h-[min(868px,calc(100dvh-40px))] sm:min-h-0 sm:w-[410px] sm:rounded-[56px] sm:bg-navy-950 sm:p-[10px] sm:shadow-frame">
+        <div className="relative min-h-dvh w-full frame:h-[min(868px,calc(100dvh-40px))] frame:min-h-0 frame:w-[410px] frame:rounded-[56px] frame:bg-navy-950 frame:p-[10px] frame:shadow-frame">
           <PhoneScreen />
         </div>
 
@@ -166,7 +168,7 @@ function BottomNav() {
   return (
     <nav
       aria-label="Patient app"
-      className="glass-bar fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-30 rounded-[28px] px-1.5 sm:static sm:z-auto sm:mx-3 sm:mb-4 sm:mt-1 sm:shrink-0"
+      className="glass-bar fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-30 rounded-[28px] px-1.5 frame:static frame:z-auto frame:mx-3 frame:mb-4 frame:mt-1 frame:shrink-0"
     >
       <ul className="grid grid-cols-5">
         {TABS.map(({ to, label, end, icon: Icon }) => (
@@ -284,9 +286,9 @@ export function PatientTabs() {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
-        className={cx('flex flex-1 touch-pan-y flex-col overflow-x-clip sm:min-h-0 sm:pb-0', !immersive && 'pb-[calc(86px+env(safe-area-inset-bottom))]')}
+        className={cx('flex flex-1 touch-pan-y flex-col overflow-x-clip frame:min-h-0 frame:pb-0', !immersive && 'pb-[calc(86px+env(safe-area-inset-bottom))]')}
       >
-        <div key={location.pathname} ref={pane} className={cx('relative flex flex-1 flex-col sm:min-h-0', lastSlide.current)}>
+        <div key={location.pathname} ref={pane} className={cx('relative flex flex-1 flex-col frame:min-h-0', lastSlide.current)}>
           <Outlet />
         </div>
       </div>
@@ -347,7 +349,7 @@ export function TopBar({ title, hideHelp = false }: { title: string; back?: stri
     else navigate('/patient');
   };
   return (
-    <header className="flex min-h-[60px] shrink-0 items-center gap-3 px-5 pt-[max(8px,env(safe-area-inset-top))] sm:pt-1">
+    <header className="flex min-h-[60px] shrink-0 items-center gap-3 px-5 pt-[max(8px,env(safe-area-inset-top))] frame:pt-1">
       <button
         type="button"
         onClick={goBack}
@@ -393,10 +395,10 @@ export function Screen({
   return (
     <>
       {header}
-      <div className="relative flex flex-1 flex-col sm:min-h-0">
-        <main className={cx('screen-in no-scrollbar flex-1 px-5 sm:min-h-0 sm:overflow-y-auto', footer ? 'pb-24' : 'pb-5', className)}>{children}</main>
+      <div className="relative flex flex-1 flex-col frame:min-h-0">
+        <main className={cx('screen-in no-scrollbar flex-1 px-5 frame:min-h-0 frame:overflow-y-auto', footer ? 'pb-24' : 'pb-5', className)}>{children}</main>
         {/* The action floats over the page; only the button itself covers content. */}
-        {footer ? <div className="pointer-events-none fixed inset-x-0 bottom-[calc(86px+env(safe-area-inset-bottom))] z-20 px-5 pb-2 sm:absolute sm:bottom-0 [&>*]:pointer-events-auto">{footer}</div> : null}
+        {footer ? <div className="pointer-events-none fixed inset-x-0 bottom-[calc(86px+env(safe-area-inset-bottom))] z-20 px-5 pb-2 frame:absolute frame:bottom-0 [&>*]:pointer-events-auto">{footer}</div> : null}
       </div>
     </>
   );

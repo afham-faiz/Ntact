@@ -6,6 +6,8 @@
  * plus provisional product decisions that are marked as such.
  */
 
+import type { AssessmentProtocol, AssessmentSession } from '../assessment/types';
+
 // ---------- Device ----------
 
 export type DeviceMode = 'IDLE' | 'NORMAL' | 'REHAB';
@@ -378,6 +380,14 @@ export interface DemoState {
    * has the two phase 1 exercises only. The app never unlocks anything by itself.
    */
   exercisePlans: Record<string, ExerciseId[]>;
+  /**
+   * Camera-based movement assessments (see src/assessment). Kept apart from
+   * `exerciseSessions`: an assessment records joint-angle estimates with their
+   * quality; an exercise session records that practice was done.
+   */
+  assessmentSessions: AssessmentSession[];
+  /** What a clinician has switched on and set for each patient. A patient with no entry has the three core assessments at their defaults. */
+  assessmentProtocols: Record<string, AssessmentProtocol>;
   /**
    * Patients a clinician has moved to patient-initiated follow-up, with the day it
    * was decided. Always a clinician's decision: the app only shows who is eligible.

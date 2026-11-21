@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { CaretRight, Check, CheckCircle, Fire, LockSimple, X } from '@phosphor-icons/react';
+import { CaretRight, Check, CheckCircle, Fire, LockSimple, Ruler, X } from '@phosphor-icons/react';
 import { useActivePatient, useDemoState, useToday } from '../../app/hooks';
 import { Button, ButtonLink, Card, Explainer, Spinner, cx } from '../../components/ui';
 import { demoStore } from '../../demo/store';
@@ -201,6 +201,20 @@ export function ExerciseHome() {
           );
         })}
       </ul>
+
+      <Link
+        to="/patient/movement"
+        className="glass mt-4 flex min-h-[76px] items-center gap-4 rounded-[24px] px-4 py-3.5 text-ink transition-transform duration-150 active:scale-[0.985]"
+      >
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-teal-50 text-teal-700">
+          <Ruler size={24} aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[17px] font-bold leading-6 tracking-[-0.015em]">Movement assessment</span>
+          <span className="block text-[14px] leading-5 text-ink-soft">Record how far each finger joint bends, with the camera.</span>
+        </span>
+        <CaretRight size={18} weight="bold" className="shrink-0 text-ink-soft" aria-hidden="true" />
+      </Link>
 
       <section aria-labelledby="exercise-movement" className="mt-6">
         <SectionHeading>
@@ -416,7 +430,7 @@ export function Summary({
 }) {
   const counted = result.reps > 0;
   return (
-    <main className="on-dark screen-in flex min-h-dvh flex-1 flex-col px-6 pb-[max(22px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] text-white sm:min-h-0 sm:pb-8 sm:pt-2">
+    <main className="on-dark screen-in flex min-h-dvh flex-1 flex-col px-6 pb-[max(22px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] text-white frame:min-h-0 frame:pb-8 frame:pt-2">
       <p className="text-center text-[14px] font-medium leading-5 text-mist">{exercise.title}</p>
 
       <div className="mt-8 text-center">
@@ -668,7 +682,7 @@ function LiveSession({ exercise }: { exercise: ExerciseDefinition }) {
   const steady = view.cuePhase === 'find-hand' || view.cuePhase === 'framing' || view.cuePhase === 'get-ready';
 
   return (
-    <main className="on-dark flex min-h-dvh flex-1 flex-col px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-[max(14px,env(safe-area-inset-top))] text-white sm:min-h-0 sm:pb-7 sm:pt-1">
+    <main className="on-dark flex min-h-dvh flex-1 flex-col px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-[max(14px,env(safe-area-inset-top))] text-white frame:min-h-0 frame:pb-7 frame:pt-1">
       <header className="flex items-center gap-3">
         <button
           type="button"

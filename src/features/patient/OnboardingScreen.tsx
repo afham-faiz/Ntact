@@ -51,8 +51,8 @@ export function OnboardingScreen() {
   };
 
   return (
-    <div className="flex flex-1 flex-col sm:min-h-0">
-      <header className="flex min-h-[56px] shrink-0 items-center justify-between px-5 pt-[max(8px,env(safe-area-inset-top))] sm:pt-1">
+    <div className="flex flex-1 flex-col frame:min-h-0">
+      <header className="flex min-h-[56px] shrink-0 items-center justify-between px-5 pt-[max(8px,env(safe-area-inset-top))] frame:pt-1">
         {step > 1 ? (
           <button
             type="button"
@@ -78,7 +78,7 @@ export function OnboardingScreen() {
         </button>
       </header>
 
-      <main key={step} className="screen-in no-scrollbar flex-1 px-5 pb-4 sm:min-h-0 sm:overflow-y-auto">
+      <main key={step} className="screen-in no-scrollbar flex-1 px-5 pb-4 frame:min-h-0 frame:overflow-y-auto">
         {step === 1 ? (
           <>
             <figure className="relative mt-2 overflow-hidden rounded-feature border border-rule bg-paper">
@@ -185,7 +185,7 @@ export function OnboardingScreen() {
         ) : null}
       </main>
 
-      <div className="shrink-0 px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-2 sm:pb-7">
+      <div className="shrink-0 px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-2 frame:pb-7">
         {step < TOTAL ? (
           <Button variant="primary" size="lg" block onClick={() => setStep(step + 1)}>
             Next

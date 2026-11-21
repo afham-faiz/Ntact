@@ -15,6 +15,8 @@ import { DEFAULT_ESTIMATE_CONFIG } from '../domain/recoveryEstimate';
 import { checkInsForPatient, median, testsForPatient } from '../domain/selectors';
 import type { SessionResult } from '../domain/exercise';
 import { DEFAULT_TRIAGE_CONFIG } from '../domain/triage';
+import type { AssessmentProtocol, AssessmentSession, ReferenceReading } from '../assessment/types';
+import { seedAssessmentSessions } from './assessmentSeed';
 import { makeExerciseSession } from './exerciseSeed';
 import type {
   CheckIn,
@@ -94,6 +96,8 @@ function upgrade(state: DemoState): DemoState {
   if (
     Array.isArray(loose.exerciseSessions) &&
     Array.isArray(loose.weeklyCheckIns) &&
+    Array.isArray(loose.assessmentSessions) &&
+    loose.assessmentProtocols &&
     loose.exercisePlans &&
     loose.followUp &&
     rulesAreCurrent
@@ -102,6 +106,9 @@ function upgrade(state: DemoState): DemoState {
   }
   return {
     ...state,
+    // Movement assessments were added later. A state saved before them is given the illustrative history.
+    assessmentSessions: Array.isArray(loose.assessmentSessions) ? loose.assessmentSessions : seedAssessmentSessions(state.patients, state.anchorDate),
+    assessmentProtocols: loose.assessmentProtocols ?? {},
     weeklyCheckIns: Array.isArray(loose.weeklyCheckIns) ? loose.weeklyCheckIns : [],
     exerciseSessions: Array.isArray(loose.exerciseSessions) ? loose.exerciseSessions : [],
     exercisePlans: loose.exercisePlans ?? {},
@@ -421,6 +428,50 @@ export class DemoStore {
     };
     this.update((state) => ({ ...state, exerciseSessions: [...state.exerciseSessions, session] }));
     return session;
+  }
+
+  // ---------- movement assessments ----------
+
+  /** Store a finished assessment. Whether it is synthetic is decided when the session is built, from where its frames came from. */
+  recordAssessment(session: AssessmentSession): AssessmentSession {
+    this.update((state) => ({ ...state, assessmentSessions: [...state.assessmentSessions, session] }));
+    return session;
+  }
+
+  /** From the clinician record: which assessments this patient is offered, and with what settings. */
+  setAssessmentProtocol(patientId: string, protocol: AssessmentProtocol): void {
+    this.update((state) => ({ ...state, assessmentProtocols: { ...state.assessmentProtocols, [patientId]: protocol } }));
+  }
+
+  /** A reading taken with a reference instrument, entered against a session for comparison. */
+  addReferenceReading(sessionId: string, reading: Omit<ReferenceReading, 'id' | 'enteredAt'>, at: Date = new Date()): void {
+    this.update((state) => ({
+      ...state,
+      assessmentSessions: state.assessmentSessions.map((session) =>
+        session.id === sessionId
+          ? { ...session, references: [...(session.references ?? []), { ...reading, id: newId('reference'), enteredAt: at.toISOString() }] }
+          : session,
+      ),
+    }));
+  }
+
+  removeReferenceReading(sessionId: string, readingId: string): void {
+    this.update((state) => ({
+      ...state,
+      assessmentSessions: state.assessmentSessions.map((session) =>
+        session.id === sessionId ? { ...session, references: (session.references ?? []).filter((reading) => reading.id !== readingId) } : session,
+      ),
+    }));
+  }
+
+  /** Remove everything captured on this device (camera sessions and replays), leaving the illustrative history. */
+  clearCapturedAssessments(patientId?: string): void {
+    this.update((state) => ({
+      ...state,
+      assessmentSessions: state.assessmentSessions.filter(
+        (session) => session.source === 'seed' || (patientId !== undefined && session.patientId !== patientId),
+      ),
+    }));
   }
 
   /** From the clinician record: which exercises this patient may do. */

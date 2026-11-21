@@ -101,9 +101,9 @@ export function TodayScreen() {
   const next = tasks.find((task) => !task.done) ?? null;
 
   return (
-    <main className="screen-in no-scrollbar flex-1 sm:min-h-0 sm:overflow-y-auto">
+    <main className="screen-in no-scrollbar flex-1 frame:min-h-0 frame:overflow-y-auto">
       {/* Masthead: navy, with the day's progress in gold */}
-      <div className="on-dark relative rounded-b-[32px] bg-ink px-6 pb-7 pt-[max(18px,env(safe-area-inset-top))] text-white shadow-[0_-600px_0_600px_#14213D] sm:pt-2 sm:shadow-none">
+      <div className="on-dark relative rounded-b-[32px] bg-ink px-6 pb-7 pt-[max(18px,env(safe-area-inset-top))] text-white shadow-[0_-600px_0_600px_#14213D] frame:pt-2 frame:shadow-none">
         <div className="flex items-center justify-between">
           <span className="text-[18px] font-bold leading-6 tracking-[-0.02em]">Ntact</span>
           <HelpButton tone="dark" />

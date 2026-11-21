@@ -115,6 +115,26 @@ export function DemoPage() {
           </Panel>
         </div>
 
+        {/* Technical demonstration */}
+        <Panel className="mt-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 px-6 py-6">
+          <div className="min-w-0 max-w-[70ch]">
+            <h2 className="serif text-[24px] leading-8 text-ink">Technical demonstration: movement assessment</h2>
+            <p className="mt-1 text-[14.5px] leading-6 text-ink-soft">
+              A five-section, full-screen walk-through of the camera-based hand tracking: what it estimates, live tracking, one
+              assessment from start to finish, the captured results, and the clinician view. It has a preflight check for the
+              camera and model, and a labelled synthetic replay to fall back on.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            <Link to="/present" className="btn-primary inline-flex min-h-12 items-center rounded-[12px] px-5 text-[15px] font-semibold text-white">
+              Open the demonstration
+            </Link>
+            <Link to="/patient/movement" className="inline-flex min-h-12 items-center rounded-[12px] border border-ink/30 px-5 text-[15px] font-semibold text-ink hover:border-ink">
+              Patient view of it
+            </Link>
+          </div>
+        </Panel>
+
         {/* Guided demo */}
         <section className="mt-12">
           <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">

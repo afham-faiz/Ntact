@@ -136,7 +136,7 @@ function RunningTest({ phase }: { phase: TestPhase }) {
   const stopping = phase.name === 'stopping';
 
   return (
-    <main className="on-dark flex min-h-dvh flex-1 flex-col px-6 sm:min-h-0 pb-[max(22px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] text-white sm:pb-8 sm:pt-2">
+    <main className="on-dark flex min-h-dvh flex-1 flex-col px-6 frame:min-h-0 pb-[max(22px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] text-white frame:pb-8 frame:pt-2">
       <p className="text-center text-[14px] font-medium leading-5 text-mist">Daily sensation test</p>
 
       {/* A fixed picture of the position to hold. It does not move with the device, so it gives nothing away. */}

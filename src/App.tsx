@@ -13,9 +13,11 @@ import { CheckInScreen } from './features/patient/CheckInScreen';
 import { DeviceScreen } from './features/patient/DeviceScreen';
 import { ExerciseHome, ExerciseReadyScreen, ExerciseSessionScreen } from './features/patient/ExerciseScreen';
 import { HelpScreen } from './features/patient/HelpScreen';
+import { MovementHome, MovementIntroScreen, MovementLiveScreen, MovementSessionScreen } from './features/patient/MovementScreen';
 import { OnboardingScreen } from './features/patient/OnboardingScreen';
 import { PatientFrame, PatientTabs } from './features/patient/PatientShell';
 import { ProgressScreen } from './features/patient/ProgressScreen';
+import { PresentPage } from './features/present/PresentPage';
 import { TestScreen } from './features/patient/TestScreen';
 import { TodayScreen } from './features/patient/TodayScreen';
 import { WeeklyCheckInScreen } from './features/patient/WeeklyCheckInScreen';
@@ -41,6 +43,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/demo" replace />} />
           <Route path="/demo" element={<DemoPage />} />
+          <Route path="/present" element={<PresentPage />} />
 
           <Route element={<PatientFrame />}>
             <Route path="/onboarding" element={<OnboardingScreen />} />
@@ -51,6 +54,10 @@ export function App() {
               <Route path="exercise" element={<ExerciseHome />} />
               <Route path="exercise/:exerciseId" element={<ExerciseReadyScreen />} />
               <Route path="exercise/:exerciseId/live" element={<ExerciseSessionScreen />} />
+              <Route path="movement" element={<MovementHome />} />
+              <Route path="movement/session/:sessionId" element={<MovementSessionScreen />} />
+              <Route path="movement/:assessmentId" element={<MovementIntroScreen />} />
+              <Route path="movement/:assessmentId/live" element={<MovementLiveScreen />} />
               <Route path="check-in" element={<CheckInScreen />} />
               <Route path="check-in/weekly" element={<WeeklyCheckInScreen />} />
               <Route path="progress" element={<ProgressScreen />} />

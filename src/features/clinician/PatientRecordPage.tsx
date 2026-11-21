@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useDemoState, useToday } from '../../app/hooks';
 import { PainChart, PainLegend } from '../../components/charts/PainChart';
 import { RecoveryChart, RecoveryLegend } from '../../components/charts/RecoveryChart';
@@ -12,6 +12,7 @@ import { describeCold, noteOf, painOf, skinIssueOf, skinNoteOf } from '../../dom
 import { dateKeyOf, daysBetween, formatDateFull, formatDay, formatDayShort, formatSeconds, formatTime } from '../../domain/dates';
 import { ESTIMATE_LABEL, SEGMENT_LABEL, estimateReturnWindow } from '../../domain/recoveryEstimate';
 import { buildDaySeries, checkInsForPatient, linearFit, testsForPatient } from '../../domain/selectors';
+import { AssessmentReviewPanel, ProtocolPanel } from './AssessmentPanel';
 import { FollowUpControl, MovementPanel, WeeklyPanel } from './MovementPanel';
 import { DIRECTION_CAVEAT, LEVEL_LABEL, RESULT_RULES, ROUTE_LABEL, ROUTE_REASON, RULE_LABEL, RULE_ROUTE, deriveFlags, triageSummaries } from '../../domain/triage';
 import type { TriageLevel } from '../../domain/types';
@@ -86,7 +87,10 @@ export function PatientRecordPage() {
   const [showTrend, setShowTrend] = useState(false);
   const [modal, setModal] = useState<'review' | 'flag' | 'note' | 'setup' | null>(null);
   const [resultRows, setResultRows] = useState(12);
-  const [tab, setTab] = useState<RecordTab>('overview');
+  // A link can open the record on a particular part: /clinician/patients/p-maya?tab=movement
+  const [query] = useSearchParams();
+  const asked = query.get('tab');
+  const [tab, setTab] = useState<RecordTab>(asked === 'movement' || asked === 'results' ? asked : 'overview');
 
   useEffect(() => {
     setActive(null);
@@ -395,6 +399,8 @@ export function PatientRecordPage() {
 
           {tab === 'movement' ? (
             <>
+          <AssessmentReviewPanel patient={patient} state={state} today={today} />
+
           {/* Check-ins */}
           <Panel className="overflow-hidden">
             <Head title="Check-ins" note="Patient-reported, newest first. Last 14 on record." />
@@ -488,6 +494,8 @@ export function PatientRecordPage() {
 
           {tab === 'movement' ? (
             <>
+          <ProtocolPanel patient={patient} state={state} />
+
           <MovementPanel patient={patient} state={state} today={today} />
 
           <WeeklyPanel patient={patient} state={state} today={today} />

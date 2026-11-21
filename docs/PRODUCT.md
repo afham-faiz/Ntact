@@ -58,6 +58,18 @@ Nine people, built so every triage outcome appears:
 
 History is deterministic and anchored on the day the data was last reset.
 
+## Movement assessment (added November 2026)
+
+The software half of the product, beside the wearable. A camera estimates finger-joint movement through clinician-selected, structured movements and records it for review over time. It complements the sensory test and never stands in for it: movement is not sensation.
+
+- **Patient:** Physio → Movement assessment. Choose an assessment the clinician has switched on, set up the camera (laptop, propped phone, phone in the other hand, or held by someone else), follow the prompts, read the summary. Hands-free once started.
+- **Clinician:** the record's "Movement and check-ins" tab. Protocol per patient; trend per joint; session detail with capture quality; comparison between like-for-like sessions; movement beside the sensory test; goniometer readings for comparison.
+- **What may be said.** Estimates are called estimates. Each one says how the joint was seen. Completion is separate from estimates. There is no recovery score, no normal range and no comparison with other people: only with the same person's earlier sessions. Nothing is called validated. Illustrative and synthetic data are labelled wherever they appear.
+- **What the app never does.** Choose or unlock a movement for a patient, encourage forcing a movement, raise a flag from an assessment, or fill in a value it could not see.
+- **Technical demonstration:** `/present`.
+
+Detail: `docs/TRACKING_ENGINE.md`, `docs/VALIDATION_PLAN.md`.
+
 ## Deliberately out of scope
 
 Backend, accounts, cross-device sync, real alerts or messaging, live pressure readings, wear time from the device, heat and pressure alarms, monofilament equivalence, any diagnosis or percentage-recovered figure, patient messaging.

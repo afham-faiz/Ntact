@@ -11,6 +11,7 @@
  *   AMBER  Priya (missed tests), Aiko (recent not-felt), Leon (two rising readings)
  *   GREEN  Maya, Samuel, Noor (consistent, improving), Elin (new, little data)
  */
+import { seedAssessmentSessions } from './assessmentSeed';
 import { addDays, atLocalTime, type DateKey } from '../domain/dates';
 import { DAILY_CHECK_IN } from '../domain/checkIn';
 import { driveForLevel, isRehabLevel, levelStartMs } from '../domain/firmware';
@@ -576,6 +577,8 @@ export function createSeedState(anchor: DateKey, scenario: Scenario = DEFAULT_SC
     weeklyCheckIns: seedWeeklyCheckIns(patients, anchor),
     exerciseSessions: seedExerciseSessions(patients, anchor),
     exercisePlans: {},
+    assessmentSessions: seedAssessmentSessions(patients, anchor),
+    assessmentProtocols: {},
     followUp: {},
     flagLog: seedFlagLog(anchor),
     clinicianFlags: [],

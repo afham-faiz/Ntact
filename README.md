@@ -1,11 +1,13 @@
 # Ntact prototype
 
-A clickable prototype of the Ntact patient app and clinician portal, for the National MedTech Hackathon. It runs in two modes, chosen deliberately:
+A working prototype of the Ntact patient app and clinician portal, with a camera-based hand movement assessment built as a research prototype for clinical collaboration (see **Movement assessment** below, and `/present` for the five-minute technical demonstration).
+
+The wearable side runs in two modes, chosen deliberately:
 
 - **Demonstration** (the default): a built-in stand-in for the wearable. No hardware needed.
 - **Physical device**: the real ESP32 wearable over Bluetooth, using the V3 firmware protocol.
 
-**Interactive concept. Demonstration data, not a medical device.** There is no backend, no login and no real patient data. Every person in it is fictional.
+**Research prototype. Demonstration data, not a medical device.** There is no backend, no login and no real patient data. Every person in it is fictional. Nothing in it is diagnostic, and no figure it shows has been clinically validated.
 
 **The Bluetooth integration passes its software tests but has not yet been run against a physical board.** See `HARDWARE_INTEGRATION.md` for the hardware checklist and for exactly what is and is not verified.
 
@@ -20,6 +22,8 @@ npm run dev
 ```
 
 Open http://localhost:5173. It starts on the demo controls page.
+
+The first run downloads the hand-tracking model (about 8 MB, once) into `public/mediapipe/models` so the app serves it itself and tracking starts without a connection. If the download fails the app still works: the browser fetches and caches the model the first time instead. Set `NTACT_SKIP_MODEL=1` to skip it, or run `npm run fetch-model` to do it on its own.
 
 To try the patient app on a real phone on the same Wi-Fi, run `npm run dev:lan` and open the network address it prints. That works for demonstration mode only: browsers allow Bluetooth on `https://` or `localhost`, not on a plain network address.
 
@@ -56,6 +60,7 @@ Full step-by-step hardware checklist, troubleshooting and nRF Connect instructio
 | Route | What it is |
 | --- | --- |
 | `/demo` | Launchers, the five-scene judge demo, the device switch, every simulation control, developer panel |
+| `/present` | **Technical demonstration of the movement assessment**: five full-screen sections, preflight check, labelled synthetic backup. Script in `docs/DEMO_SCRIPT.md` |
 | `/onboarding` | Optional three-step introduction: Touch Assist, the daily test, finger and surgery date |
 | `/patient` | Home: the three things to do today (test, exercise, check-in) and Touch Assist |
 | `/patient/assist` | Touch Assist explanation and enable/pause |
@@ -63,13 +68,17 @@ Full step-by-step hardware checklist, troubleshooting and nRF Connect instructio
 | `/patient/exercise` | Physio: the day's three exercises (one locked until a clinician unlocks it) and the movement trend |
 | `/patient/exercise/:id` | Get ready: the three steps for one exercise, then Start |
 | `/patient/exercise/:id/live` | Live session: camera hand tracking, rep counting, real-time coaching. Add `?mode=demo` for the drawn demonstration hand |
+| `/patient/movement` | Movement assessment: the assessments a clinician has switched on, and past sessions |
+| `/patient/movement/:id` | One assessment: an illustration, the steps, the camera view it needs, earlier sessions |
+| `/patient/movement/:id/live` | Camera setup, the live assessment, and the session summary. `?mode=replay` plays the labelled synthetic sequence; `?debug=1` adds the developer view |
+| `/patient/movement/session/:id` | One past session |
 | `/patient/check-in` | Four-question daily check-in, editable the same day |
 | `/patient/check-in/weekly` | Three weekly questions: cold sensitivity, tingling, everyday function |
 | `/patient/progress` | Recovery curve, reported pain, day-by-day history |
 | `/patient/settings` | Settings: connect and disconnect the wearable, device switch, your details, links to Help and the other views |
 | `/patient/help` | Where everything is, how to do the test, and troubleshooting. Reached from the "?" on every screen |
 | `/clinician` | Triage worklist: summary filters and a table ordered by review status |
-| `/clinician/patients/:id` | Clinical record: why it is flagged, recovery curve, return window, adherence, results, check-ins, notes |
+| `/clinician/patients/:id` | Clinical record: why it is flagged, recovery curve, return window, adherence, results, check-ins, notes. `?tab=movement` opens on the movement assessments: trend, sessions, comparison, reference readings, protocol |
 | `/clinician/reviews` | Every review flag, with record-review and reopen |
 | `/clinician/rules` | Editable provisional triage rules and return-window assumptions |
 | `/clinician/help` | Where things are in the dashboard, what the colours mean, who each flag goes to |
@@ -87,6 +96,25 @@ On `/demo`, press **Load judge-demo preset** (resets the data; the next test rep
 
 Use one browser for the whole demo (separate tabs or windows are fine).
 
+## Movement assessment (camera)
+
+A structured, camera-based assessment of finger-joint movement. It is the software half of Ntact, beside the wearable's sensory test: it does not measure sensation, and it does not replace the hardware.
+
+- **Tracking:** MediaPipe Hand Landmarker in the browser, 21 landmarks per hand, either hand, front or rear camera. Landmarks are stabilised (jump rejection, gap bridging, One Euro filter) before anything is computed from them.
+- **Estimates:** flexion at the MCP, PIP and DIP joints of each finger and the thumb's two joints, from landmark geometry. Every estimate carries how the joint was seen: **in view** (it bent across the picture), **depth-inferred** (it bent along the line of sight, so the angle rests on the model's depth estimate) or **not seen** (hidden: no value is given).
+- **Assessments:** composite fist, hook fist and tabletop (core), thumb opposition and single-finger flexion (exploratory). Each is a definition (start position, target position, views accepted, clinician-set detection thresholds) run by one explicit state machine: start → target → hold → return. The target is judged as a change from where that hand started. Deterministic geometry throughout; no model decides whether a movement was done.
+- **Shown, not just described:** every movement is an animated drawing, before the camera starts and beside the picture during the session.
+- **When someone is struggling:** a movement that falls short is recorded as "did not reach the set position" with how far it went, and the app offers calm help. It never pushes anyone to reach a position.
+- **Quality:** a frame is used only if the hand is framed, steady, in a view the assessment accepts, with the needed joints visible. A repetition that reaches the target but fails a requirement is stored as **rejected** and never averaged in.
+- **Sessions:** repetitions, per-joint estimates with their grade, hold durations, capture quality, and the camera, view, parameters and versions needed to judge whether two sessions are comparable. Completion and estimates are kept apart; there is no recovery score and no normal range.
+- **Clinician:** per-patient protocol (which assessments, thresholds, hold, repetitions, minimum grade), trend per joint, session detail, comparison, movement beside the sensory test on one date axis, and a form for goniometer readings.
+- **Mobile:** the same screen on a phone, portrait or landscape, hands-free once started, with tones and optional spoken instructions.
+- **Honesty:** camera sessions, synthetic replays and the illustrative seeded history are three kinds of data, labelled everywhere and never joined on a chart. Thresholds are detection thresholds, not therapeutic targets. The movements are offered as demonstration assessments switched on by a clinician.
+
+**Not verified yet:** the development environment has no camera access, so live tracking with a real hand, real frame rates and every physical phone are untested. `docs/TESTING_WITH_YOUR_HAND.md` is the twenty-minute checklist for that. **Not established at all:** how close any estimate is to a goniometer. `docs/VALIDATION_PLAN.md` is the plan.
+
+How it works, in full: `docs/TRACKING_ENGINE.md`.
+
 ## Guided exercises (camera)
 
 The patient's "Physio" tab. The app tracks 21 points on the hand through the camera, counts repetitions, and coaches in real time ("Keep curling, gently", "Bring your index finger in with the others"). There are three exercises, ten repetitions each, defined in `src/domain/exercise.ts`:
@@ -103,7 +131,7 @@ The day's physio counts as done when every unlocked exercise has been done.
 
 - **Finger slides needs the camera pointed at the table.** A hand lying flat is a harder view for hand tracking than a raised palm, and none of the three has been tried with a real hand yet.
 
-- **Tracking:** MediaPipe Hand Landmarker, running in the browser (`src/exercise/cameraHand.ts`). The WebAssembly runtime is served by this app from `/mediapipe/wasm` (copied out of `node_modules` by `scripts/copy-mediapipe.mjs` before `dev` and `build`). The hand model, about 8 MB, is fetched from Google's public model storage the first time and then cached, so the first session needs a connection.
+- **Tracking:** the same camera, model and stabilised tracking pipeline as the movement assessment (`src/exercise/cameraHand.ts` is a thin adapter over `src/camera` and `src/tracking`). There is one tracking system in the app.
 - **Privacy:** video never leaves the device. Nothing is recorded or uploaded; only repetitions and estimated angles are saved.
 - **Where it works:** Chrome, Edge and Safari, including iPhone, on `https://` or `localhost`. (Unlike Bluetooth, the camera does work on iPhone.)
 - **Accuracy:** angles come from one camera view and are typically within 10 to 20 degrees, worse if the hand is turned. They are shown as estimates ("about 140°", "≈140°") for guidance and trend. They are not goniometry, and the clinician record says so.
@@ -158,16 +186,28 @@ src/domain/     types, firmware contract, test state machine, triage rules, retu
                 check-in schema, adherence, patient messaging, selectors
 src/devices/    DeviceAdapter (the seam), MockDeviceAdapter (demonstration), BleDeviceAdapter (Web Bluetooth),
                 source (which of the two this tab uses)
-src/exercise/   camera hand tracking (MediaPipe), the drawn demonstration hand, canvas drawing
-src/demo/       seed data (nine fictional patients) and the localStorage store
+src/tracking/   hand geometry (joint angles, view, occlusion), One Euro filter, stabiliser, frame quality,
+                the tracker, the kinematic hand model and landmark recordings. Pure: no browser, no clock
+src/assessment/ movement definitions (data), the assessment engine (state machine), session summary,
+                comparability, repeatability and agreement statistics. Pure
+src/camera/     camera stream (front/rear, interruptions), model loading and offline cache, frame loop,
+                screen mapping, overlay drawing, brightness / gyroscope / wake lock
+src/exercise/   the guided physio exercises: an adapter over the tracking above, the drawn demonstration hand
+src/demo/       seed data (nine fictional patients, illustrative assessment history) and the localStorage store
 src/app/        React providers: device status, test session
 src/components/ shared UI and charts
-src/features/   patient, clinician, demo screens
-tests/          402 tests: domain, store, simulated device, Bluetooth adapter, device and test-session
-                providers end to end, the exercise engine, and the care model (routing, follow-up, weekly)
+src/features/   patient, clinician, demo screens; movement/ (live screen, report, trend, figure);
+                present/ (the technical demonstration and its preflight check)
+tests/          567 tests. The original 402: domain, store, simulated device, Bluetooth adapter, device and
+                test-session providers end to end, the exercise engine, the care model. And 165 for the
+                movement assessment: geometry against hands with known angles, the tracking pipeline, the
+                engine driven by synthetic landmark sequences, sessions and statistics, the camera layer
+                against a pretend camera, and the screens including one whole replayed session
 ```
 
-The Bluetooth tests run against a pretend ESP32 (`tests/fakeBle.ts`) written from the handoff. They show the app keeps its side of the protocol. They do not show that a board works. There are no screen-level component or navigation tests yet.
+The movement-assessment tests drive the real tracker and engine with landmarks from a kinematic hand model whose joint angles are known. They show the software does what it is specified to do. They do not show that a camera's landmarks match a real hand.
+
+The Bluetooth tests run against a pretend ESP32 (`tests/fakeBle.ts`) written from the handoff. They show the app keeps its side of the protocol. They do not show that a board works.
 
 ## How the Bluetooth link works
 
@@ -181,6 +221,11 @@ Screens depend only on `DeviceAdapter` and the notification strings, so the demo
 
 ## Documents
 
+- `docs/TRACKING_ENGINE.md`: the hand tracking and movement assessment: architecture, every algorithm and threshold, what is and is not verified, known limitations.
+- `docs/VALIDATION_PLAN.md`: how the movement estimates would be evaluated, up to agreement with goniometry. No validation has been done.
+- `docs/DEMO_SCRIPT.md`: the five-minute technical demonstration, key by key, with what to do if the camera fails.
+- `docs/TESTING_WITH_YOUR_HAND.md`: running it on Windows and the checklist for a first test with a real hand.
+- `docs/MOBILE_TESTING.md`: what is built for phones, what was and was not tested, and the checklist for a real device.
 - `HARDWARE_INTEGRATION.md`: testing against the physical ESP32, troubleshooting, and what is verified.
 - `docs/PRODUCT.md`: what the product is and the decisions taken.
 - `docs/DESIGN.md`: the visual system.

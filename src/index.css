@@ -85,7 +85,6 @@
   --color-sky-600: #2a77b0;
   --color-sand-50: #faf5ea;
   --color-sand-600: #8a6a2c;
-
   --font-sans: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --color-floor: #f4f6fa; /* sampled: warm off-white */
   --color-rule: #dde3ec; /* sampled: hairline */
@@ -107,6 +106,16 @@
 
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+/*
+  `frame:` is where the patient app stops filling the screen and sits in a phone
+  mock-up: a window at least 640 px wide AND tall enough to hold the mock-up. A
+  phone turned on its side is wide but not tall, and must keep the full-screen app.
+*/
+@custom-variant frame (@media (min-width: 40rem) and (min-height: 38rem));
+
+/* `short:` is a screen with little height: a phone turned on its side. Live screens drop their secondary text there. */
+@custom-variant short (@media (max-height: 30rem));
 
 @layer base {
   html {
